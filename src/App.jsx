@@ -1,87 +1,80 @@
-import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, Receipt, Shield } from 'lucide-react'
+import { HashRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { LayoutDashboard, Users, Receipt, ShieldCheck } from 'lucide-react'
 import './index.css'
-
-// Pages (we'll build these next)
 import Dashboard from './pages/Dashboard'
 import Members from './pages/Members'
 import Expenses from './pages/Expenses'
 import Admin from './pages/Admin'
 
-function App() {
+function BottomNav() {
+  const location = useLocation()
+  const tabs = [
+    { to: '/', icon: LayoutDashboard, label: 'Home' },
+    { to: '/members', icon: Users, label: 'Squad' },
+    { to: '/expenses', icon: Receipt, label: 'Expenses' },
+    { to: '/admin', icon: ShieldCheck, label: 'Admin' },
+  ]
+  return (
+    <div style={{
+      position: 'fixed', bottom: 0,
+      left: '50%', transform: 'translateX(-50%)',
+      width: '100%', maxWidth: 430,
+      background: 'rgba(6,10,6,0.95)',
+      backdropFilter: 'blur(20px)',
+      borderTop: '1px solid rgba(34,197,94,0.1)',
+      display: 'flex', zIndex: 100,
+      paddingBottom: 'env(safe-area-inset-bottom)'
+    }}>
+      {tabs.map(t => {
+        const active = t.to === '/'
+          ? location.pathname === '/'
+          : location.pathname.startsWith(t.to)
+        return (
+          <NavLink key={t.to} to={t.to} end={t.to === '/'}
+            style={{
+              flex: 1, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              padding: '10px 0 14px', textDecoration: 'none',
+              gap: 4, position: 'relative'
+            }}>
+            {active && (
+              <div style={{
+                position: 'absolute', top: 0, left: '50%',
+                transform: 'translateX(-50%)',
+                width: 32, height: 2,
+                background: 'var(--green)',
+                borderRadius: '0 0 4px 4px',
+                boxShadow: '0 0 8px var(--green)'
+              }} />
+            )}
+            <t.icon
+              size={20} strokeWidth={active ? 2.5 : 1.8}
+              color={active ? 'var(--green)' : 'var(--t3)'}
+            />
+            <span style={{
+              fontSize: 10, fontWeight: active ? 700 : 400,
+              color: active ? 'var(--green)' : 'var(--t3)',
+              letterSpacing: 0.3
+            }}>{t.label}</span>
+          </NavLink>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function App() {
   return (
     <Router>
-      <div style={{ paddingBottom: 80 }}>
-
-        {/* Header */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border)',
-          padding: '16px 20px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 50
-        }}>
-          <h1 style={{ color: 'var(--accent-gold)', fontSize: 18, fontWeight: 700 }}>
-            🏏 Golden Cricket Club
-          </h1>
-        </div>
-
-        {/* Pages */}
+      <div style={{ paddingBottom: 72 }}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/members" element={<Members />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/admin" element={<Admin />} />
         </Routes>
-
-        {/* Bottom Nav */}
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          maxWidth: 480,
-          background: 'var(--bg-secondary)',
-          borderTop: '1px solid var(--border)',
-          display: 'flex',
-          zIndex: 50
-        }}>
-          {[
-            { to: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-            { to: '/members', icon: <Users size={20} />, label: 'Members' },
-            { to: '/expenses', icon: <Receipt size={20} />, label: 'Expenses' },
-            { to: '/admin', icon: <Shield size={20} />, label: 'Admin' },
-          ].map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end
-              style={({ isActive }) => ({
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '10px 0 14px',
-                textDecoration: 'none',
-                color: isActive ? 'var(--accent-gold)' : 'var(--text-muted)',
-                gap: 4,
-                fontSize: 10,
-                fontWeight: isActive ? 700 : 400,
-                transition: 'color 0.2s'
-              })}
-            >
-              {item.icon}
-              {item.label}
-            </NavLink>
-          ))}
-        </div>
-
+        <BottomNav />
       </div>
     </Router>
   )
 }
-
-export default App
