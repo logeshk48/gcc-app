@@ -22,7 +22,6 @@ export function AppProvider({ children }) {
         if (d.expenses) setExpenses(d.expenses)
         if (d.oldBalance !== undefined) setOldBalance(d.oldBalance)
       } else {
-        // fresh start — empty data
         setDoc(doc(db, 'gcc', 'data'), {
           members: [],
           expenses: {},
@@ -43,7 +42,14 @@ export function AppProvider({ children }) {
     await setDoc(doc(db, 'gcc', 'data'), payload)
   }
 
-  // ── computed ──────────────────────────────────────────────────────
+  const resetData = async () => {
+    const empty = { members: [], expenses: {}, oldBalance: 0 }
+    await setDoc(doc(db, 'gcc', 'data'), empty)
+    setMembers([])
+    setExpenses({})
+    setOldBalance(0)
+  }
+
   const monthlyCollection = MONTHS.map((_, mi) =>
     members.reduce((s, m) => s + (m.paid[mi] || 0), 0)
   )
@@ -75,6 +81,7 @@ export function AppProvider({ children }) {
       runningBalance,
       currentBalance,
       saveData,
+      resetData,
       MONTHS,
       EXP_CATS
     }}>
