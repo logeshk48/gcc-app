@@ -1,149 +1,225 @@
+/* ── HERO ── */
 .dash-hero {
-  padding: 52px 24px 28px;
-  background: linear-gradient(180deg, #071208 0%, #060a06 100%);
-  border-bottom: 1px solid rgba(34, 197, 94, 0.08);
+  min-height: 420px;
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.15) 0%,
+      rgba(0,0,0,0.4)  40%,
+      rgba(5,8,10,0.92) 75%,
+      #05080a 100%
+    ),
+    url('/gcc-app/cricket-bg.jpeg');
+  background-size: cover;
+  background-position: center 55%;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 0 0 0;
 }
 
-.dash-hero-bg {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle at 80% 20%, rgba(34,197,94,0.07) 0%, transparent 60%);
-  pointer-events: none;
+.dash-hero-top {
+  padding: 56px 24px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
-.dash-hero-label {
+.dash-hero-eyebrow {
   font-size: 11px;
-  color: var(--green);
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 2.5px;
   text-transform: uppercase;
-  margin-bottom: 6px;
+  color: rgba(34,197,94,0.9);
+  margin-bottom: 10px;
 }
 
 .dash-hero-balance {
-  font-size: 58px;
+  font-size: 64px;
   font-weight: 900;
   color: #fff;
-  letter-spacing: -3px;
+  letter-spacing: -4px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  animation: countUp 0.6s ease;
+  animation: countUp 0.8s cubic-bezier(0.16,1,0.3,1) both;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.5);
 }
 
 .dash-hero-live {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 14px;
+  margin-bottom: 28px;
 }
 
-.dash-hero-dot {
-  width: 6px;
-  height: 6px;
+.dash-hero-live-dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 8px var(--green);
+  box-shadow: 0 0 10px var(--green);
   animation: pulse 2s infinite;
+  flex-shrink: 0;
 }
 
-.dash-hero-stats {
+.dash-hero-live-text {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  font-weight: 500;
+}
+
+/* glass stats bar */
+.dash-hero-glass {
+  margin: 0 16px 20px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 16px 20px;
   display: flex;
   gap: 0;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255,255,255,0.05);
 }
 
 .dash-hero-stat {
   flex: 1;
 }
 
+.dash-hero-stat + .dash-hero-stat {
+  padding-left: 14px;
+  margin-left: 14px;
+  border-left: 1px solid rgba(255,255,255,0.08);
+}
+
 .dash-hero-stat-label {
   font-size: 9px;
-  color: var(--t3);
+  color: rgba(255,255,255,0.35);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 4px;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
 }
 
 .dash-hero-stat-val {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
 }
 
+/* ── BODY ── */
+.dash-body {
+  padding: 8px 20px 24px;
+  background: #05080a;
+}
+
+/* ── SECTION ── */
 .dash-section {
-  padding: 24px 24px 0;
+  margin-bottom: 32px;
+  animation: fadeUp 0.4s ease both;
+}
+
+.dash-section-eyebrow {
+  font-size: 10px;
+  color: var(--t2);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.dash-section-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--t1);
+  letter-spacing: -0.3px;
+  margin-bottom: 16px;
 }
 
 .dash-section-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   margin-bottom: 16px;
-}
-
-.dash-section-left {}
-
-.dash-section-label {
-  font-size: 11px;
-  color: var(--t2);
-  font-weight: 700;
-  letter-spacing: 1.8px;
-  text-transform: uppercase;
-  margin-bottom: 3px;
-}
-
-.dash-section-title {
-  font-size: 19px;
-  font-weight: 800;
-  color: var(--t1);
 }
 
 .dash-see-all {
   font-size: 12px;
   color: var(--green);
   font-weight: 700;
-  background: none;
+  background: var(--green-dim);
   border: none;
+  padding: 5px 12px;
+  border-radius: 20px;
   cursor: pointer;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: rgba(34,197,94,0.08);
   text-decoration: none;
   display: flex;
   align-items: center;
   gap: 3px;
+  transition: opacity 0.2s;
 }
 
+.dash-see-all:active { opacity: 0.7; }
+
+/* ── DIVIDER ── */
 .dash-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-  margin: 24px 24px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  margin: 28px 0;
 }
 
-.dash-progress-bar-bg {
-  height: 5px;
+/* ── PROGRESS ── */
+.dash-progress-wrap {
+  margin-bottom: 20px;
+}
+
+.dash-progress-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.dash-progress-label {
+  font-size: 12px;
+  color: var(--t2);
+  font-weight: 600;
+}
+
+.dash-progress-pct {
+  font-size: 12px;
+  color: var(--green);
+  font-weight: 800;
+}
+
+.dash-progress-bg {
+  height: 4px;
   background: rgba(255,255,255,0.06);
-  border-radius: 6px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
-.dash-progress-bar-fill {
-  height: 5px;
-  background: linear-gradient(90deg, #16a34a, #22c55e);
-  border-radius: 6px;
-  transition: width 1.2s ease;
-  box-shadow: 0 0 8px rgba(34,197,94,0.4);
+.dash-progress-fill {
+  height: 4px;
+  background: linear-gradient(90deg, #16a34a, #22c55e, #4ade80);
+  border-radius: 4px;
+  transition: width 1.4s cubic-bezier(0.16,1,0.3,1);
+  box-shadow: 0 0 10px rgba(34,197,94,0.5);
 }
 
+.dash-progress-sub {
+  font-size: 10px;
+  color: var(--t3);
+  margin-top: 5px;
+}
+
+/* ── STAT ROW ── */
 .dash-stat-row {
   display: flex;
   gap: 0;
-  margin-bottom: 20px;
 }
 
 .dash-stat-item {
@@ -151,8 +227,8 @@
 }
 
 .dash-stat-item + .dash-stat-item {
-  padding-left: 16px;
-  margin-left: 16px;
+  padding-left: 20px;
+  margin-left: 20px;
   border-left: 1px solid rgba(255,255,255,0.05);
 }
 
@@ -172,19 +248,59 @@
 }
 
 .dash-stat-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
+/* ── FINANCE ROW ── */
+.dash-finance-row {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+}
+
+.dash-finance-col {
+  flex: 1;
+}
+
+.dash-finance-col + .dash-finance-col {
+  padding-left: 24px;
+  border-left: 1px solid rgba(255,255,255,0.05);
+}
+
+.dash-finance-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+.dash-finance-label-text {
+  font-size: 10px;
+  color: var(--t2);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.dash-finance-value {
+  font-size: 30px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1.5px;
+}
+
+/* ── CONTRIBUTOR ── */
 .dash-contributor-row {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .dash-contributor-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 7px;
 }
 
 .dash-contributor-left {
@@ -194,12 +310,13 @@
 }
 
 .dash-contributor-medal {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .dash-contributor-name {
@@ -215,38 +332,38 @@
 }
 
 .dash-bar {
-  height: 3px;
+  height: 2px;
   background: rgba(255,255,255,0.05);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .dash-bar-fill {
-  height: 3px;
+  height: 2px;
   border-radius: 4px;
-  opacity: 0.8;
 }
 
+/* ── DUE ROW ── */
 .dash-due-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(245,158,11,0.07);
-  border: 1px solid rgba(245,158,11,0.12);
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.1);
   margin-bottom: 8px;
 }
 
 .dash-due-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 10px;
-  background: rgba(245,158,11,0.12);
+  background: rgba(245,158,11,0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--amber);
   flex-shrink: 0;
@@ -261,6 +378,7 @@
 .dash-due-sub {
   font-size: 11px;
   color: var(--amber);
+  margin-top: 1px;
 }
 
 .dash-due-right {
@@ -271,23 +389,25 @@
   flex-shrink: 0;
 }
 
+/* ── EXP ROW ── */
 .dash-exp-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 
 .dash-exp-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .dash-exp-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -303,6 +423,7 @@
 .dash-exp-month {
   font-size: 11px;
   color: var(--t3);
+  margin-top: 2px;
 }
 
 .dash-exp-amount {
@@ -312,39 +433,73 @@
   font-variant-numeric: tabular-nums;
 }
 
-.dash-finance-row {
+/* ── MONTH ROW ── */
+.dash-month-row {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.dash-month-top {
   display: flex;
-  gap: 0;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
 }
 
-.dash-finance-col {
-  flex: 1;
-}
-
-.dash-finance-col + .dash-finance-col {
-  padding-left: 20px;
-  border-left: 1px solid rgba(255,255,255,0.05);
-}
-
-.dash-finance-label {
+.dash-month-left {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-bottom: 5px;
+  align-items: baseline;
+  gap: 10px;
 }
 
-.dash-finance-label-text {
-  font-size: 10px;
-  color: var(--t2);
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+.dash-month-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--green);
+  width: 32px;
 }
 
-.dash-finance-value {
-  font-size: 26px;
-  font-weight: 900;
+.dash-month-col {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--t1);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -1px;
+}
+
+.dash-month-net {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-month-bar-bg {
+  height: 2px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dash-month-bar-fill {
+  height: 2px;
+  border-radius: 4px;
+  opacity: 0.6;
+}
+
+.dash-month-sub {
+  font-size: 10px;
+  color: var(--t3);
+  margin-top: 4px;
+}
+
+/* ── SKELETON ── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.07) 50%,
+    rgba(255,255,255,0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+  border-radius: 8px;
 }
