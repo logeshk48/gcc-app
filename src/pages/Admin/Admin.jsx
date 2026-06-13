@@ -242,6 +242,11 @@ export default function Admin() {
     closeSheet()
   }
 
+  // ── ALPHABETICAL SORTED MEMBERS ──
+  const sortedMembers = [...members]
+    .map((m, i) => ({ ...m, _origIdx: i }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
   // ══════════ LOCK SCREEN ══════════
   if (!isAdmin) {
     return (
@@ -341,7 +346,7 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* ── MEMBERS ── */}
+        {/* ── MEMBERS — ALPHABETICAL ── */}
         <div className="asection">
           <div className="asection-label">Members ({members.length})</div>
           {members.length === 0 && (
@@ -349,14 +354,17 @@ export default function Admin() {
               No members yet — tap Add Member
             </div>
           )}
-          {members.map((m, i) => {
+          {sortedMembers.map((m, i) => {
             const [bg, fg] = getColor(m.name)
             const paidCount = m.paid.filter(v => v > 0).length
             const total = m.paid.reduce((s, v) => s + v, 0)
             return (
               <div key={i} className="amember-row"
                 style={{ animationDelay: `${i * 0.03}s` }}
-                onClick={() => { setSelMember({ ...m, _idx: i }); setSheet('member-detail') }}>
+                onClick={() => {
+                  setSelMember({ ...m, _idx: m._origIdx })
+                  setSheet('member-detail')
+                }}>
                 <div className="amember-avatar" style={{ background: bg, color: fg }}>
                   {m.name.charAt(0).toUpperCase()}
                 </div>
@@ -378,9 +386,7 @@ export default function Admin() {
 
         {/* ── EXPENSES ── */}
         <div className="asection">
-          <div className="asection-label">
-            Expenses ({allExpItems.length})
-          </div>
+          <div className="asection-label">Expenses ({allExpItems.length})</div>
 
           {allExpItems.length === 0 && (
             <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--t3)', fontSize: 13 }}>
@@ -395,7 +401,6 @@ export default function Admin() {
                 <div style={{ width: 8, height: 8, borderRadius: 2, background: EXP_COLORS[e.cat] || '#6b7280' }} />
               </div>
 
-              {/* editing inline */}
               {editExp && editExp.cat === e.cat && editExp.mi === e.mi ? (
                 <div style={{ flex: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
                   <input

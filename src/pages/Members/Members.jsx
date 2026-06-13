@@ -16,9 +16,11 @@ function getColor(name) {
 }
 
 function getStatus(member, curMonth) {
-  const p = member.paid.filter(v => v > 0).length
-  if (p === 0) return 'inactive'
-  if (p >= curMonth + 1) return 'paid'
+  const totalPaid = member.paid.reduce((s, v) => s + v, 0)
+  const paidMonths = member.paid.filter(v => v > 0).length
+  const expectedTotal = (curMonth + 1) * 100
+  if (paidMonths === 0 && totalPaid === 0) return 'inactive'
+  if (totalPaid >= 1200 || totalPaid >= expectedTotal || paidMonths >= curMonth + 1) return 'paid'
   return 'partial'
 }
 
@@ -47,11 +49,15 @@ export default function Members() {
     inactive: members.filter(m => getStatus(m, curMonth) === 'inactive').length,
   }
 
-  const filtered = members.filter(m => {
-    const matchSearch = m.name.toLowerCase().includes(search.toLowerCase())
-    const matchFilter = filter === 'all' || getStatus(m, curMonth) === filter
-    return matchSearch && matchFilter
-  })
+  // ── ALPHABETICAL SORT + FILTER ──
+  const filtered = [...members]
+    .map((m, i) => ({ ...m, _origIdx: i }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .filter(m => {
+      const matchSearch = m.name.toLowerCase().includes(search.toLowerCase())
+      const matchFilter = filter === 'all' || getStatus(m, curMonth) === filter
+      return matchSearch && matchFilter
+    })
 
   const handleAdd = async () => {
     if (!newName.trim()) return
@@ -100,10 +106,10 @@ export default function Members() {
       {/* ── STATS STRIP ── */}
       <div className="mpage-stats">
         {[
-          { val: members.length, label: 'Total'   },
-          { val: counts.paid,    label: 'Paid',    color: '#22c55e' },
-          { val: counts.partial, label: 'Partial', color: '#f59e0b' },
-          { val: counts.inactive,label: 'Inactive',color: '#475569' },
+          { val: members.length,  label: 'Total'                          },
+          { val: counts.paid,     label: 'Paid',     color: '#22c55e'     },
+          { val: counts.partial,  label: 'Partial',  color: '#f59e0b'     },
+          { val: counts.inactive, label: 'Inactive', color: '#475569'     },
         ].map((s, i) => (
           <div key={i} className="mpage-stat">
             <div className="mpage-stat-val" style={{ color: s.color || '#fff' }}>{s.val}</div>
@@ -166,13 +172,12 @@ export default function Members() {
           const [bg, fg] = getColor(m.name)
           const total = m.paid.reduce((s, v) => s + v, 0)
           const paidM = m.paid.filter(v => v > 0).length
-          const realIdx = members.indexOf(m)
 
           return (
             <div key={i}
               className={`mcard status-${status}`}
-              style={{ animationDelay: `${i * 0.04}s` }}
-              onClick={() => setSelected({ ...m, _idx: realIdx })}>
+              style={{ animationDelay: `${i * 0.03}s` }}
+              onClick={() => setSelected({ ...m, _idx: m._origIdx })}>
 
               <div className="mcard-top">
                 <div className="mcard-avatar" style={{ background: bg, color: fg }}>
@@ -197,9 +202,7 @@ export default function Members() {
                 {MONTHS.map((mo, mi) => (
                   <div key={mi} className="mcard-dot"
                     style={{
-                      background: m.paid[mi] > 0
-                        ? ss.color
-                        : 'rgba(255,255,255,0.06)'
+                      background: m.paid[mi] > 0 ? ss.color : 'rgba(255,255,255,0.06)'
                     }}
                   />
                 ))}
@@ -277,9 +280,10 @@ export default function Members() {
                 {/* stats */}
                 <div className="mdetail-stats">
                   {[
-                    { label: 'Total Paid',  val: `₹${total.toLocaleString()}`, color: 'var(--green)' },
-                    { label: 'Months',      val: `${paidM}/12`,                color: '#fff'         },
-                    { label: 'This Month',  val: selected.paid[curMonth] > 0 ? 'Paid' : 'Due', color: selected.paid[curMonth] > 0 ? 'var(--green)' : 'var(--red)' },
+                    { label: 'Total Paid', val: `₹${total.toLocaleString()}`, color: 'var(--green)' },
+                    { label: 'Months',     val: `${paidM}/12`,                color: '#fff'         },
+                    { label: 'This Month', val: selected.paid[curMonth] > 0 ? 'Paid' : 'Due',
+                      color: selected.paid[curMonth] > 0 ? 'var(--green)' : 'var(--red)' },
                   ].map((s, i) => (
                     <div key={i} className="mdetail-stat">
                       <div className="mdetail-stat-label">{s.label}</div>

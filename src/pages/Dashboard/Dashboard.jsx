@@ -3,29 +3,20 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, Target,
-  Calendar, BarChart2, Trophy,
-  AlertTriangle, Zap, ChevronRight
+  Calendar, BarChart2, Trophy, ChevronRight
 } from 'lucide-react'
 import './Dashboard.css'
 
-function useCountUp(target, duration = 2000) {
+function useCountUp(target, duration = 1800) {
   const [val, setVal] = useState(0)
-  const prev = useRef(0)
   useEffect(() => {
-    if (!target && target !== 0) return
-    const from = prev.current
-    prev.current = target
-    let start = from
-    const diff = target - from
-    if (diff === 0) return
-    const step = diff / (duration / 16)
+    if (!target) return
+    let start = 0
+    const step = target / (duration / 16)
     const t = setInterval(() => {
       start += step
-      if ((step > 0 && start >= target) || (step < 0 && start <= target)) {
-        setVal(target); clearInterval(t)
-      } else {
-        setVal(Math.floor(start))
-      }
+      if (start >= target) { setVal(target); clearInterval(t) }
+      else setVal(Math.floor(start))
     }, 16)
     return () => clearInterval(t)
   }, [target])
@@ -36,39 +27,77 @@ function Skeleton({ w = '100%', h = 20, r = 8 }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: r }} />
 }
 
-function SVGBarChart({ data }) {
-  const W = 360, H = 120, pL = 4, pR = 4, pT = 10, pB = 22
+// ── SVG 3D Bar Chart ──
+function SVG3DBarChart({ data }) {
+  const W = 340, H = 160
+  const pL = 8, pR = 16, pT = 10, pB = 24
   const cW = W - pL - pR, cH = H - pT - pB
   const max = Math.max(...data.flatMap(d => [d.col, d.exp]), 1)
   const slotW = cW / data.length
-  const bW = slotW * 0.3
+  const bW = Math.min(slotW * 0.28, 18)
+  const depth = 5
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
-      <defs>
-        <linearGradient id="colGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#22c55e" stopOpacity={1} />
-          <stop offset="100%" stopColor="#16a34a" stopOpacity={0.8} />
-        </linearGradient>
-        <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
-          <stop offset="100%" stopColor="#dc2626" stopOpacity={0.8} />
-        </linearGradient>
-      </defs>
-      {[0.33, 0.66, 1].map(p => (
+      {/* grid lines */}
+      {[0.25, 0.5, 0.75, 1].map(p => (
         <line key={p}
           x1={pL} y1={pT + cH * (1-p)}
           x2={W-pR} y2={pT + cH * (1-p)}
           stroke="rgba(255,255,255,0.04)" strokeWidth={1} strokeDasharray="3 3" />
       ))}
+
       {data.map((d, i) => {
         const cx = pL + i * slotW + slotW / 2
         const colH = Math.max((d.col / max) * cH, d.col > 0 ? 4 : 0)
         const expH = Math.max((d.exp / max) * cH, d.exp > 0 ? 4 : 0)
+        const cx1 = cx - bW - 2
+        const cx2 = cx + 2
+
         return (
           <g key={i}>
-            <rect x={cx-bW-1} y={pT+cH-colH} width={bW} height={colH} rx={4} fill="url(#colGrad)" />
-            <rect x={cx+1} y={pT+cH-expH} width={bW} height={expH} rx={4} fill="url(#expGrad)" />
-            <text x={cx} y={H-5} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.18)" fontWeight="600">{d.month}</text>
+            {/* Collection 3D bar */}
+            {d.col > 0 && <>
+              {/* front */}
+              <rect x={cx1} y={pT+cH-colH} width={bW} height={colH} rx={2} fill="#22c55e" />
+              {/* right side */}
+              <polygon points={`
+                ${cx1+bW},${pT+cH-colH}
+                ${cx1+bW+depth},${pT+cH-colH-depth}
+                ${cx1+bW+depth},${pT+cH-depth}
+                ${cx1+bW},${pT+cH}
+              `} fill="#16a34a" />
+              {/* top */}
+              <polygon points={`
+                ${cx1},${pT+cH-colH}
+                ${cx1+depth},${pT+cH-colH-depth}
+                ${cx1+bW+depth},${pT+cH-colH-depth}
+                ${cx1+bW},${pT+cH-colH}
+              `} fill="#4ade80" />
+            </>}
+
+            {/* Expense 3D bar */}
+            {d.exp > 0 && <>
+              <rect x={cx2} y={pT+cH-expH} width={bW} height={expH} rx={2} fill="#ef4444" />
+              <polygon points={`
+                ${cx2+bW},${pT+cH-expH}
+                ${cx2+bW+depth},${pT+cH-expH-depth}
+                ${cx2+bW+depth},${pT+cH-depth}
+                ${cx2+bW},${pT+cH}
+              `} fill="#b91c1c" />
+              <polygon points={`
+                ${cx2},${pT+cH-expH}
+                ${cx2+depth},${pT+cH-expH-depth}
+                ${cx2+bW+depth},${pT+cH-expH-depth}
+                ${cx2+bW},${pT+cH-expH}
+              `} fill="#fca5a5" />
+            </>}
+
+            {/* month label */}
+            <text x={cx} y={H-6} textAnchor="middle" fontSize={9}
+              fill="rgba(255,255,255,0.25)" fontWeight="600">
+              {d.month}
+            </text>
           </g>
         )
       })}
@@ -76,9 +105,10 @@ function SVGBarChart({ data }) {
   )
 }
 
-function SVGSparkline({ data }) {
+// ── SVG Area Chart ──
+function SVGAreaChart({ data }) {
   if (data.length < 2) return null
-  const W = 360, H = 72, pL = 4, pR = 4, pT = 8, pB = 8
+  const W = 340, H = 100, pL = 8, pR = 16, pT = 8, pB = 8
   const cW = W - pL - pR, cH = H - pT - pB
   const vals = data.map(d => d.net)
   const min = Math.min(...vals), max = Math.max(...vals)
@@ -89,18 +119,33 @@ function SVGSparkline({ data }) {
   }))
   const line = pts.map((p, i) => `${i===0?'M':'L'}${p.x},${p.y}`).join(' ')
   const area = `${line} L${pts[pts.length-1].x},${pT+cH} L${pts[0].x},${pT+cH} Z`
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
       <defs>
-        <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
+        <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#22c55e" stopOpacity={0.35} />
           <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
         </linearGradient>
       </defs>
-      <path d={area} fill="url(#sparkGrad)" />
-      <path d={line} fill="none" stroke="#22c55e" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+      {[0.25, 0.5, 0.75].map(p => (
+        <line key={p} x1={pL} y1={pT+cH*p} x2={W-pR} y2={pT+cH*p}
+          stroke="rgba(255,255,255,0.04)" strokeWidth={1} strokeDasharray="3 3" />
+      ))}
+      <path d={area} fill="url(#ag)" />
+      <path d={line} fill="none" stroke="#22c55e" strokeWidth={2.5}
+        strokeLinecap="round" strokeLinejoin="round" />
       {pts.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={3} fill="#05080a" stroke="#22c55e" strokeWidth={2} />
+        <circle key={i} cx={p.x} cy={p.y} r={3.5}
+          fill="#05080a" stroke="#22c55e" strokeWidth={2} />
+      ))}
+      {data.map((d, i) => (
+        <text key={i}
+          x={pL + (i / (data.length-1)) * cW}
+          y={H-1} textAnchor="middle" fontSize={9}
+          fill="rgba(255,255,255,0.2)" fontWeight="600">
+          {d.month}
+        </text>
       ))}
     </svg>
   )
@@ -113,33 +158,46 @@ const EXP_COLORS = {
   'Ground fee': '#22c55e', 'Jersey': '#a855f7', 'Other': '#6b7280'
 }
 
+const TABS = ['Contributors', 'Behind', 'Expenses', 'Monthly']
+
 export default function Dashboard() {
   const {
     currentBalance, monthlyCollection, monthlyExpenses,
     members, expenses, loading, MONTHS
   } = useApp()
   const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState(0)
 
   const totalCol = monthlyCollection.reduce((a, b) => a + b, 0)
   const totalExp = monthlyExpenses.reduce((a, b) => a + b, 0)
   const activeMembers = members.filter(m => m.paid.some(p => p > 0)).length
   const curMonth = new Date().getMonth()
 
-  const pendingMembers = members.filter(m => {
-    const paid = m.paid.filter(v => v > 0).length
-    return paid < curMonth + 1 && paid > 0
-  }).slice(0, 3)
+  // ── CORRECT DUES LOGIC ──
+  // Due amount = (months since first payment × 100) - total paid
+  // If total paid >= 1200 (advance full year) → not due
+  const pendingMembers = members.map(m => {
+    const totalPaid = m.paid.reduce((s, v) => s + v, 0)
+    if (totalPaid >= 1200) return null // advance paid full year
+    const firstPaidMonth = m.paid.findIndex(v => v > 0)
+    if (firstPaidMonth === -1) return null // never paid
+    const monthsExpected = curMonth - firstPaidMonth + 1
+    const expectedAmount = monthsExpected * 100
+    const dueAmount = expectedAmount - totalPaid
+    if (dueAmount <= 0) return null // all paid up
+    return { ...m, dueAmount, monthsExpected, totalPaid }
+  }).filter(Boolean)
 
   const topContributors = [...members]
     .map(m => ({ name: m.name, total: m.paid.reduce((s, v) => s + v, 0) }))
     .filter(m => m.total > 0)
     .sort((a, b) => b.total - a.total)
-    .slice(0, 3)
+    .slice(0, 5)
 
   const recentExpenses = []
-  for (let mi = curMonth; mi >= 0 && recentExpenses.length < 4; mi--) {
+  for (let mi = curMonth; mi >= 0 && recentExpenses.length < 5; mi--) {
     Object.entries(expenses).forEach(([cat, vals]) => {
-      if (vals[mi] > 0 && recentExpenses.length < 4)
+      if (vals[mi] > 0 && recentExpenses.length < 5)
         recentExpenses.push({ cat, amount: vals[mi], month: MONTHS[mi] })
     })
   }
@@ -154,7 +212,8 @@ export default function Dashboard() {
   const exp = useCountUp(loading ? 0 : totalExp)
 
   const chartData = MONTHS.map((m, i) => ({
-    month: m, col: monthlyCollection[i],
+    month: m,
+    col: monthlyCollection[i],
     exp: monthlyExpenses[i],
     net: monthlyCollection[i] - monthlyExpenses[i]
   })).filter(d => d.col > 0 || d.exp > 0)
@@ -194,9 +253,9 @@ export default function Dashboard() {
               { label: 'Dues', val: pendingMembers.length, color: pendingMembers.length>0?'#f59e0b':'#22c55e' },
             ].map((s, i, arr) => (
               <div key={i} className="dash-hero-stat" style={{
-                paddingRight: i < arr.length-1 ? 14 : 0,
-                marginRight:  i < arr.length-1 ? 14 : 0,
-                borderRight:  i < arr.length-1 ? '1px solid rgba(255,255,255,0.07)' : 'none'
+                paddingRight: i < arr.length-1 ? 12 : 0,
+                marginRight: i < arr.length-1 ? 12 : 0,
+                borderRight: i < arr.length-1 ? '1px solid rgba(255,255,255,0.08)' : 'none'
               }}>
                 <div className="dash-hero-stat-label">{s.label}</div>
                 <div className="dash-hero-stat-val" style={{ color: s.color }}>{s.val}</div>
@@ -227,9 +286,9 @@ export default function Dashboard() {
           </div>
           <div className="dash-stat-row">
             {[
-              { icon: Target,    label: 'Avg / Month', val: `₹${Math.round(avgMonthlyCol).toLocaleString()}`, color: 'var(--green)' },
-              { icon: Calendar,  label: 'Months Left',  val: monthsLeft,                                       color: 'var(--amber)' },
-              { icon: BarChart2, label: 'Peak Month',   val: monthlyCollection.some(v=>v>0) ? MONTHS[monthlyCollection.indexOf(Math.max(...monthlyCollection))] : '—', color: 'var(--blue)' },
+              { icon: Target, label: 'Avg / Month', val: `₹${Math.round(avgMonthlyCol).toLocaleString()}`, color: 'var(--green)' },
+              { icon: Calendar, label: 'Months Left', val: monthsLeft, color: 'var(--amber)' },
+              { icon: BarChart2, label: 'Peak Month', val: monthlyCollection.some(v=>v>0) ? MONTHS[monthlyCollection.indexOf(Math.max(...monthlyCollection))] : '—', color: 'var(--blue)' },
             ].map((s, i) => (
               <div key={i} className="dash-stat-item">
                 <div className="dash-stat-icon-row">
@@ -254,19 +313,27 @@ export default function Dashboard() {
                 <TrendingUp size={12} color="var(--green)" strokeWidth={2.5} />
                 <span className="dash-finance-label-text">Collected</span>
               </div>
-              <div className="dash-finance-value" style={{ color: 'var(--green)' }}>₹{col.toLocaleString()}</div>
+              <div className="dash-finance-value" style={{ color: 'var(--green)' }}>
+                ₹{col.toLocaleString()}
+              </div>
             </div>
             <div className="dash-finance-col">
               <div className="dash-finance-label">
                 <TrendingDown size={12} color="var(--red)" strokeWidth={2.5} />
                 <span className="dash-finance-label-text">Expenses</span>
               </div>
-              <div className="dash-finance-value" style={{ color: 'var(--red)' }}>₹{exp.toLocaleString()}</div>
+              <div className="dash-finance-value" style={{ color: 'var(--red)' }}>
+                ₹{exp.toLocaleString()}
+              </div>
             </div>
           </div>
-          {loading ? <Skeleton h={120} r={8} /> : <SVGBarChart data={chartData} />}
-          <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
-            {[['var(--green)', 'Collection'], ['var(--red)', 'Expenses']].map(([c, l]) => (
+
+          {loading
+            ? <Skeleton h={160} r={8} />
+            : <SVG3DBarChart data={chartData} />
+          }
+          <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+            {[['#22c55e','Collection'],['#ef4444','Expenses']].map(([c,l]) => (
               <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <div style={{ width: 6, height: 6, borderRadius: 2, background: c }} />
                 <span style={{ fontSize: 10, color: 'var(--t2)', fontWeight: 500 }}>{l}</span>
@@ -282,170 +349,211 @@ export default function Dashboard() {
           <div className="dash-section-eyebrow">Net Trend</div>
           <div className="dash-section-title">Monthly Balance Flow</div>
           {loading
-            ? <Skeleton h={72} r={8} />
+            ? <Skeleton h={100} r={8} />
             : chartData.length >= 2
-              ? <SVGSparkline data={chartData} />
-              : <div style={{ fontSize: 13, color: 'var(--t3)', padding: '16px 0' }}>Not enough data yet</div>
+              ? <SVGAreaChart data={chartData} />
+              : <div style={{ fontSize: 13, color: 'var(--t3)', padding: '16px 0' }}>
+                  Not enough data yet
+                </div>
           }
         </div>
 
-        {/* TOP CONTRIBUTORS */}
-        {topContributors.length > 0 && (
-          <>
-            <div className="dash-divider" />
-            <div className="dash-section" style={{ animationDelay: '0.2s' }}>
-              <div className="dash-section-header">
-                <div>
-                  <div className="dash-section-eyebrow">Squad</div>
-                  <div className="dash-section-title" style={{ marginBottom: 0 }}>Top Contributors</div>
-                </div>
-                <button className="dash-see-all" onClick={() => navigate('/members')}>
-                  All <ChevronRight size={11} />
-                </button>
-              </div>
-              {topContributors.map((m, i) => {
-                const pct = Math.round((m.total / topContributors[0].total) * 100)
-                return (
-                  <div key={i} className="dash-contributor-row">
-                    <div className="dash-contributor-top">
-                      <div className="dash-contributor-left">
-                        <div className="dash-contributor-medal"
-                          style={{ background: `${medals[i]}12`, border: `1px solid ${medals[i]}25` }}>
-                          <Trophy size={14} color={medals[i]} strokeWidth={2.5} />
+        <div className="dash-divider" />
+
+        {/* ── 4 TABS ── */}
+        <div className="dash-section" style={{ animationDelay: '0.2s' }}>
+          <div className="dash-tabs">
+            {TABS.map((t, i) => (
+              <button key={i}
+                className={`dash-tab-btn ${activeTab === i ? 'active' : ''}`}
+                onClick={() => setActiveTab(i)}>
+                {t}
+                {i === 1 && pendingMembers.length > 0 && (
+                  <span className="dash-tab-badge">{pendingMembers.length}</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="dash-tab-content">
+
+            {/* TAB 0 — TOP CONTRIBUTORS */}
+            {activeTab === 0 && (
+              <div>
+                {topContributors.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)', fontSize: 13 }}>
+                    No data yet
+                  </div>
+                )}
+                {topContributors.map((m, i) => {
+                  const pct = Math.round((m.total / topContributors[0].total) * 100)
+                  return (
+                    <div key={i} className="dash-contributor-row">
+                      <div className="dash-contributor-top">
+                        <div className="dash-contributor-left">
+                          <div className="dash-contributor-medal"
+                            style={{ background: `${medals[i]||'#475569'}12`, border: `1px solid ${medals[i]||'#475569'}25` }}>
+                            <Trophy size={14} color={medals[i]||'#475569'} strokeWidth={2.5} />
+                          </div>
+                          <span className="dash-contributor-name">{m.name}</span>
                         </div>
-                        <span className="dash-contributor-name">{m.name}</span>
+                        <span className="dash-contributor-amount" style={{ color: medals[i]||'var(--t1)' }}>
+                          ₹{m.total.toLocaleString()}
+                        </span>
                       </div>
-                      <span className="dash-contributor-amount" style={{ color: medals[i] }}>
-                        ₹{m.total.toLocaleString()}
-                      </span>
+                      <div className="dash-bar">
+                        <div className="dash-bar-fill" style={{ width: `${pct}%`, background: medals[i]||'var(--green)' }} />
+                      </div>
                     </div>
-                    <div className="dash-bar">
-                      <div className="dash-bar-fill" style={{ width: `${pct}%`, background: medals[i] }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </>
-        )}
-
-        {/* PENDING DUES */}
-        {pendingMembers.length > 0 && (
-          <>
-            <div className="dash-divider" />
-            <div className="dash-section" style={{ animationDelay: '0.25s' }}>
-              <div className="dash-section-header">
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <AlertTriangle size={11} color="var(--amber)" strokeWidth={2.5} />
-                    <div className="dash-section-eyebrow" style={{ marginBottom: 0 }}>Dues Pending</div>
-                  </div>
-                  <div className="dash-section-title" style={{ marginBottom: 0 }}>Members Behind</div>
-                </div>
-                <button className="dash-see-all" onClick={() => navigate('/members')}>
-                  All <ChevronRight size={11} />
+                  )
+                })}
+                <button className="dash-see-all" onClick={() => navigate('/members')} style={{ marginTop: 12 }}>
+                  View all members <ChevronRight size={11} />
                 </button>
               </div>
-              {pendingMembers.map((m, i) => {
-                const paid = m.paid.filter(v => v > 0).length
-                const behind = curMonth + 1 - paid
-                return (
-                  <div key={i} className="dash-due-row">
-                    <div className="dash-due-avatar">{m.name.charAt(0).toUpperCase()}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="dash-due-name">{m.name}</div>
-                      <div className="dash-due-sub">{behind} month{behind>1?'s':''} behind · ₹{behind*100} due</div>
-                    </div>
-                    <div className="dash-due-right">{paid}/{curMonth+1} paid</div>
-                  </div>
-                )
-              })}
-            </div>
-          </>
-        )}
+            )}
 
-        {/* RECENT EXPENSES */}
-        {recentExpenses.length > 0 && (
-          <>
-            <div className="dash-divider" />
-            <div className="dash-section" style={{ animationDelay: '0.3s' }}>
-              <div className="dash-section-header">
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <Zap size={11} color="var(--red)" strokeWidth={2.5} />
-                    <div className="dash-section-eyebrow" style={{ marginBottom: 0 }}>Recent</div>
+            {/* TAB 1 — MEMBERS BEHIND */}
+            {activeTab === 1 && (
+              <div>
+                {pendingMembers.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                    <div style={{ fontSize: 36, marginBottom: 10 }}>🎉</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--green)', marginBottom: 4 }}>
+                      All caught up!
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--t3)' }}>
+                      Everyone is up to date
+                    </div>
                   </div>
-                  <div className="dash-section-title" style={{ marginBottom: 0 }}>Latest Expenses</div>
-                </div>
-                <button className="dash-see-all" onClick={() => navigate('/expenses')}>
-                  All <ChevronRight size={11} />
-                </button>
-              </div>
-              {recentExpenses.map((e, i) => {
-                const color = EXP_COLORS[e.cat] || '#6b7280'
-                return (
-                  <div key={i} className="dash-exp-row">
-                    <div className="dash-exp-left">
-                      <div className="dash-exp-icon" style={{ background: `${color}10` }}>
-                        <div style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
-                      </div>
+                ) : (
+                  <>
+                    {/* total dues summary */}
+                    <div style={{
+                      background: 'rgba(245,158,11,0.06)',
+                      border: '1px solid rgba(245,158,11,0.15)',
+                      borderRadius: 14, padding: '12px 16px',
+                      marginBottom: 14, display: 'flex',
+                      justifyContent: 'space-between', alignItems: 'center'
+                    }}>
                       <div>
-                        <div className="dash-exp-cat">{e.cat}</div>
-                        <div className="dash-exp-month">{e.month} 2026</div>
+                        <div style={{ fontSize: 10, color: 'var(--amber)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>
+                          Total Outstanding
+                        </div>
+                        <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--amber)', fontVariantNumeric: 'tabular-nums' }}>
+                          ₹{pendingMembers.reduce((s, m) => s + m.dueAmount, 0).toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>
+                          Members
+                        </div>
+                        <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--t1)' }}>
+                          {pendingMembers.length}
+                        </div>
                       </div>
                     </div>
-                    <div className="dash-exp-amount">−₹{e.amount.toLocaleString()}</div>
-                  </div>
-                )
-              })}
-            </div>
-          </>
-        )}
 
-        {/* MONTH BREAKDOWN */}
-        {chartData.length > 0 && (
-          <>
-            <div className="dash-divider" />
-            <div className="dash-section" style={{ animationDelay: '0.35s' }}>
-              <div className="dash-section-eyebrow">Breakdown</div>
-              <div className="dash-section-title">Month by Month</div>
-              {MONTHS.map((m, i) => {
-                const c = monthlyCollection[i]
-                const e = monthlyExpenses[i]
-                if (c === 0 && e === 0) return null
-                const net = c - e
-                const pct = Math.round((c / (totalCol || 1)) * 100)
-                const isMaxExp = e > 0 && e === Math.max(...monthlyExpenses)
-                return (
-                  <div key={i} className="dash-month-row">
-                    <div className="dash-month-top">
-                      <div className="dash-month-left">
-                        <span className="dash-month-label">{m}</span>
-                        <span className="dash-month-col">₹{c.toLocaleString()}</span>
-                        {isMaxExp && (
-                          <span style={{
-                            fontSize: 9, color: 'var(--red)', fontWeight: 700,
-                            textTransform: 'uppercase', letterSpacing: 0.8,
-                            padding: '2px 6px', background: 'rgba(239,68,68,0.08)',
-                            border: '1px solid rgba(239,68,68,0.15)', borderRadius: 5
-                          }}>Peak</span>
-                        )}
+                    {pendingMembers.map((m, i) => (
+                      <div key={i} className="dash-due-row">
+                        <div className="dash-due-avatar">{m.name.charAt(0).toUpperCase()}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="dash-due-name">{m.name}</div>
+                          <div className="dash-due-sub">
+                            Paid ₹{m.totalPaid} of ₹{m.monthsExpected * 100} expected
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--red)', fontVariantNumeric: 'tabular-nums' }}>
+                            ₹{m.dueAmount}
+                          </div>
+                          <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                            due
+                          </div>
+                        </div>
                       </div>
-                      <span className="dash-month-net" style={{ color: net>=0?'var(--green)':'var(--red)' }}>
-                        {net>=0?'+':''}₹{net.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="dash-month-bar-bg">
-                      <div className="dash-month-bar-fill"
-                        style={{ width: `${pct}%`, background: net>=0?'var(--green)':'var(--red)' }} />
-                    </div>
-                    <div className="dash-month-sub">₹{e.toLocaleString()} in expenses</div>
+                    ))}
+                    <button className="dash-see-all" onClick={() => navigate('/members')} style={{ marginTop: 12 }}>
+                      View all members <ChevronRight size={11} />
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* TAB 2 — LATEST EXPENSES */}
+            {activeTab === 2 && (
+              <div>
+                {recentExpenses.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)', fontSize: 13 }}>
+                    No expenses recorded yet
                   </div>
-                )
-              })}
-            </div>
-          </>
-        )}
+                )}
+                {recentExpenses.map((e, i) => {
+                  const color = EXP_COLORS[e.cat] || '#6b7280'
+                  return (
+                    <div key={i} className="dash-exp-row">
+                      <div className="dash-exp-left">
+                        <div className="dash-exp-icon" style={{ background: `${color}10` }}>
+                          <div style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
+                        </div>
+                        <div>
+                          <div className="dash-exp-cat">{e.cat}</div>
+                          <div className="dash-exp-month">{e.month} 2026</div>
+                        </div>
+                      </div>
+                      <div className="dash-exp-amount">−₹{e.amount.toLocaleString()}</div>
+                    </div>
+                  )
+                })}
+                <button className="dash-see-all" onClick={() => navigate('/expenses')} style={{ marginTop: 12 }}>
+                  View all expenses <ChevronRight size={11} />
+                </button>
+              </div>
+            )}
+
+            {/* TAB 3 — MONTH BY MONTH */}
+            {activeTab === 3 && (
+              <div>
+                {MONTHS.map((m, i) => {
+                  const c = monthlyCollection[i]
+                  const e = monthlyExpenses[i]
+                  if (c === 0 && e === 0) return null
+                  const net = c - e
+                  const pct = Math.round((c / (totalCol || 1)) * 100)
+                  const isMaxExp = e > 0 && e === Math.max(...monthlyExpenses)
+                  return (
+                    <div key={i} className="dash-month-row">
+                      <div className="dash-month-top">
+                        <div className="dash-month-left">
+                          <span className="dash-month-label">{m}</span>
+                          <span className="dash-month-col">₹{c.toLocaleString()}</span>
+                          {isMaxExp && (
+                            <span style={{
+                              fontSize: 9, color: 'var(--red)', fontWeight: 700,
+                              textTransform: 'uppercase', letterSpacing: 0.8,
+                              padding: '2px 6px', background: 'rgba(239,68,68,0.08)',
+                              border: '1px solid rgba(239,68,68,0.15)', borderRadius: 5
+                            }}>Peak</span>
+                          )}
+                        </div>
+                        <span className="dash-month-net" style={{ color: net>=0?'var(--green)':'var(--red)' }}>
+                          {net>=0?'+':''}₹{net.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="dash-month-bar-bg">
+                        <div className="dash-month-bar-fill"
+                          style={{ width: `${pct}%`, background: net>=0?'var(--green)':'var(--red)' }} />
+                      </div>
+                      <div className="dash-month-sub">₹{e.toLocaleString()} in expenses</div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+          </div>
+        </div>
 
         {/* EMPTY */}
         {!loading && chartData.length === 0 && members.length === 0 && (
@@ -459,7 +567,9 @@ export default function Dashboard() {
             }}>
               <BarChart2 size={24} color="var(--green)" strokeWidth={1.5} />
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t2)', marginBottom: 6 }}>No data yet</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t2)', marginBottom: 6 }}>
+              No data yet
+            </div>
             <div style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.6 }}>
               Login as admin to add members and record payments
             </div>
