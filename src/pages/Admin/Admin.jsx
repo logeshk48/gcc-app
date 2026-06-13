@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import {
-  Lock, ShieldCheck, Plus, X, Check,
+  Lock, Plus, X, Check,
   Wallet, AlertTriangle, ChevronRight,
-  Eye, EyeOff, LogOut, Users, Receipt
+  Eye, EyeOff, LogOut, Users, Receipt, Pencil
 } from 'lucide-react'
 import './Admin.css'
 
@@ -57,6 +57,14 @@ export default function Admin() {
   const [payMonthIdx, setPayMonthIdx] = useState(null)
   const [showPayPicker, setShowPayPicker] = useState(false)
 
+  // edit name
+  const [editName, setEditName] = useState('')
+  const [showEditName, setShowEditName] = useState(false)
+
+  // edit expense
+  const [editExp, setEditExp] = useState(null)
+  const [editExpAmount, setEditExpAmount] = useState('')
+
   // forms
   const [newName, setNewName] = useState('')
   const [newJoin, setNewJoin] = useState(0)
@@ -86,6 +94,10 @@ export default function Admin() {
     setShowPayPicker(false)
     setPayAmount('100')
     setPwError('')
+    setShowEditName(false)
+    setEditName('')
+    setEditExp(null)
+    setEditExpAmount('')
   }
 
   // ── LOGIN ──
@@ -109,6 +121,20 @@ export default function Admin() {
     await saveData(next, undefined, undefined)
     showToast(`${newName.trim()} added!`)
     closeSheet()
+  }
+
+  // ── EDIT NAME ──
+  const handleEditName = async () => {
+    if (!editName.trim()) return
+    const next = members.map((m, i) =>
+      i === selMember._idx ? { ...m, name: editName.trim() } : m
+    )
+    setMembers(next)
+    await saveData(next, undefined, undefined)
+    setSelMember({ ...next[selMember._idx], _idx: selMember._idx })
+    showToast('Name updated!')
+    setShowEditName(false)
+    setEditName('')
   }
 
   // ── CELL TAP ──
@@ -164,6 +190,30 @@ export default function Admin() {
     closeSheet()
   }
 
+  // ── EDIT EXPENSE ──
+  const handleEditExpense = async () => {
+    const amt = parseInt(editExpAmount)
+    if (!amt || amt <= 0) return
+    const next = { ...expenses }
+    next[editExp.cat] = [...next[editExp.cat]]
+    next[editExp.cat][editExp.mi] = amt
+    setExpenses(next)
+    await saveData(undefined, next, undefined)
+    showToast(`Updated to ₹${amt}`)
+    setEditExp(null)
+    setEditExpAmount('')
+  }
+
+  // ── DELETE EXPENSE ──
+  const handleDeleteExpense = async (cat, mi) => {
+    const next = { ...expenses }
+    next[cat] = [...next[cat]]
+    next[cat][mi] = 0
+    setExpenses(next)
+    await saveData(undefined, next, undefined)
+    showToast(`${cat} expense removed`)
+  }
+
   // ── EDIT BALANCE ──
   const handleEditBalance = async () => {
     const val = parseInt(newBalance)
@@ -205,7 +255,6 @@ export default function Admin() {
           <div className="alock-tag">Admin Access</div>
           <div className="alock-title">Welcome<br />Back</div>
           <div className="alock-sub">Enter your password to continue</div>
-
           <div className="alock-input-wrap">
             <input
               className="alock-input"
@@ -230,6 +279,12 @@ export default function Admin() {
   }
 
   // ══════════ ADMIN PANEL ══════════
+  const allExpItems = Object.entries(expenses)
+    .flatMap(([cat, vals]) =>
+      vals.map((v, mi) => v > 0 ? { cat, amount: v, mi } : null).filter(Boolean)
+    )
+    .sort((a, b) => b.mi - a.mi)
+
   return (
     <div className="apage">
       {toast && <Toast msg={toast} />}
@@ -321,34 +376,85 @@ export default function Admin() {
           })}
         </div>
 
-        {/* ── RECENT EXPENSES ── */}
+        {/* ── EXPENSES ── */}
         <div className="asection">
-          <div className="asection-label">Recent Expenses</div>
-          {Object.entries(expenses)
-            .flatMap(([cat, vals]) =>
-              vals.map((v, mi) => v > 0 ? { cat, amount: v, mi } : null).filter(Boolean)
-            )
-            .sort((a, b) => b.mi - a.mi)
-            .slice(0, 5)
-            .map((e, i) => (
-              <div key={i} className="aexp-row">
-                <div className="aexp-icon"
-                  style={{ background: `${EXP_COLORS[e.cat] || '#6b7280'}15` }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: EXP_COLORS[e.cat] || '#6b7280' }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div className="aexp-cat">{e.cat}</div>
-                  <div className="aexp-month">{MONTHS[e.mi]} 2026</div>
-                </div>
-                <div className="aexp-amount">−₹{e.amount.toLocaleString()}</div>
-              </div>
-            ))
-          }
-          {Object.values(expenses).flat().filter(v => v > 0).length === 0 && (
+          <div className="asection-label">
+            Expenses ({allExpItems.length})
+          </div>
+
+          {allExpItems.length === 0 && (
             <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--t3)', fontSize: 13 }}>
               No expenses yet
             </div>
           )}
+
+          {allExpItems.map((e, i) => (
+            <div key={i} className="aexp-row">
+              <div className="aexp-icon"
+                style={{ background: `${EXP_COLORS[e.cat] || '#6b7280'}15` }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: EXP_COLORS[e.cat] || '#6b7280' }} />
+              </div>
+
+              {/* editing inline */}
+              {editExp && editExp.cat === e.cat && editExp.mi === e.mi ? (
+                <div style={{ flex: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    value={editExpAmount}
+                    onChange={ev => setEditExpAmount(ev.target.value)}
+                    autoFocus
+                    onKeyDown={ev => ev.key === 'Enter' && handleEditExpense()}
+                    style={{
+                      flex: 1, background: 'rgba(255,255,255,0.06)',
+                      border: '1.5px solid rgba(34,197,94,0.3)',
+                      borderRadius: 10, padding: '7px 10px',
+                      fontSize: 14, color: '#fff', fontWeight: 700
+                    }}
+                  />
+                  <button onClick={handleEditExpense}
+                    style={{ padding: '7px 12px', background: 'var(--green)', color: '#000', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 800, cursor: 'pointer', flexShrink: 0 }}>
+                    Save
+                  </button>
+                  <button onClick={() => { setEditExp(null); setEditExpAmount('') }}
+                    style={{ padding: '7px 10px', background: 'rgba(255,255,255,0.06)', color: 'var(--t2)', border: 'none', borderRadius: 10, fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ flex: 1 }}>
+                    <div className="aexp-cat">{e.cat}</div>
+                    <div className="aexp-month">{MONTHS[e.mi]} 2026</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="aexp-amount">−₹{e.amount.toLocaleString()}</div>
+                    <button
+                      onClick={() => { setEditExp(e); setEditExpAmount(String(e.amount)) }}
+                      style={{
+                        width: 30, height: 30, borderRadius: 9,
+                        background: 'rgba(59,130,246,0.1)',
+                        border: '1px solid rgba(59,130,246,0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', flexShrink: 0
+                      }}>
+                      <Pencil size={12} color="var(--blue)" strokeWidth={2.5} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteExpense(e.cat, e.mi)}
+                      style={{
+                        width: 30, height: 30, borderRadius: 9,
+                        background: 'rgba(239,68,68,0.1)',
+                        border: '1px solid rgba(239,68,68,0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', flexShrink: 0
+                      }}>
+                      <X size={12} color="var(--red)" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
         </div>
 
         {/* ── SETTINGS ── */}
@@ -388,8 +494,12 @@ export default function Admin() {
                 <AlertTriangle size={15} color="var(--red)" strokeWidth={2} />
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)', letterSpacing: '-0.2px' }}>Reset All Data</div>
-                <div style={{ fontSize: 11, color: 'rgba(239,68,68,0.4)', marginTop: 2 }}>Permanently delete everything</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)', letterSpacing: '-0.2px' }}>
+                  Reset All Data
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(239,68,68,0.4)', marginTop: 2 }}>
+                  Permanently delete everything
+                </div>
               </div>
             </div>
             <ChevronRight size={14} color="var(--red)" />
@@ -439,7 +549,8 @@ export default function Admin() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div className="amember-avatar"
                       style={{ width: 36, height: 36, borderRadius: 11, fontSize: 14,
-                        background: getColor(selMember.name)[0], color: getColor(selMember.name)[1] }}>
+                        background: getColor(selMember.name)[0],
+                        color: getColor(selMember.name)[1] }}>
                       {selMember.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -451,7 +562,48 @@ export default function Admin() {
                   </div>
                   <button className="asheet-close" onClick={closeSheet}><X size={15} /></button>
                 </div>
+
                 <div className="asheet-body">
+
+                  {/* EDIT NAME */}
+                  {showEditName ? (
+                    <div style={{ marginBottom: 16 }}>
+                      <label className="aform-label">New Name</label>
+                      <input className="aform-input"
+                        placeholder="Enter new name"
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        autoFocus
+                        onKeyDown={e => e.key === 'Enter' && handleEditName()}
+                      />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={() => { setShowEditName(false); setEditName('') }}
+                          style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.04)', color: 'var(--t2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                          Cancel
+                        </button>
+                        <button onClick={handleEditName}
+                          style={{ flex: 1, padding: 11, background: 'var(--green)', color: '#000', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+                          Save Name
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setEditName(selMember.name); setShowEditName(true) }}
+                      style={{
+                        width: '100%', padding: '10px 14px', marginBottom: 16,
+                        background: 'rgba(59,130,246,0.07)',
+                        border: '1px solid rgba(59,130,246,0.15)',
+                        borderRadius: 14, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 8,
+                      }}>
+                      <Pencil size={13} color="var(--blue)" strokeWidth={2.5} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)' }}>Edit Name</span>
+                    </button>
+                  )}
+
+                  {/* PAYMENT GRID */}
                   <div style={{ fontSize: 10, color: 'var(--t2)', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>
                     Tap month to toggle
                   </div>
@@ -474,7 +626,7 @@ export default function Admin() {
                     })}
                   </div>
 
-                  {/* pay amount picker */}
+                  {/* PAY AMOUNT PICKER */}
                   {showPayPicker && (
                     <div className="apay-picker">
                       <div className="apay-picker-label">
