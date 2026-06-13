@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext'
 import {
   Lock, ShieldCheck, Plus, X, Check,
   Wallet, AlertTriangle, ChevronRight,
-  Eye, EyeOff, LogOut
+  Eye, EyeOff, LogOut, Users, Receipt
 } from 'lucide-react'
 import './Admin.css'
 
@@ -13,6 +13,7 @@ const AVATAR_COLORS = [
   ['#0d2b1a','#22c55e'], ['#1a0d2b','#a855f7'],
   ['#2b1a0d','#f59e0b'], ['#0d1a2b','#3b82f6'],
   ['#2b0d1a','#ec4899'], ['#0d2b2b','#06b6d4'],
+  ['#1a2b0d','#84cc16'], ['#2b0d0d','#f97316'],
 ]
 
 const EXP_COLORS = {
@@ -28,7 +29,7 @@ function getColor(name) {
 }
 
 function Toast({ msg }) {
-  return <div className="success-toast">{msg}</div>
+  return <div className="atoast">{msg}</div>
 }
 
 export default function Admin() {
@@ -54,7 +55,7 @@ export default function Admin() {
   // pay amount
   const [payAmount, setPayAmount] = useState('100')
   const [payMonthIdx, setPayMonthIdx] = useState(null)
-  const [showPayInput, setShowPayInput] = useState(false)
+  const [showPayPicker, setShowPayPicker] = useState(false)
 
   // forms
   const [newName, setNewName] = useState('')
@@ -77,16 +78,14 @@ export default function Admin() {
   const closeSheet = () => {
     setSheet(null)
     setSelMember(null)
-    setNewName('')
-    setNewJoin(0)
-    setExpAmount('')
-    setNewBalance('')
-    setNewPw('')
-    setConfirmPw('')
+    setNewName(''); setNewJoin(0)
+    setExpAmount(''); setNewBalance('')
+    setNewPw(''); setConfirmPw('')
     setResetConfirm(false)
     setSaving(false)
-    setShowPayInput(false)
+    setShowPayPicker(false)
     setPayAmount('100')
+    setPwError('')
   }
 
   // ── LOGIN ──
@@ -116,13 +115,11 @@ export default function Admin() {
   const handleCellTap = (memberIdx, monthIdx) => {
     const current = members[memberIdx].paid[monthIdx]
     if (current > 0) {
-      // already paid — toggle off
       handleTogglePay(memberIdx, monthIdx, 0)
     } else {
-      // show amount input
       setPayMonthIdx(monthIdx)
       setPayAmount('100')
-      setShowPayInput(true)
+      setShowPayPicker(true)
     }
   }
 
@@ -137,7 +134,7 @@ export default function Admin() {
     setMembers(next)
     await saveData(next, undefined, undefined)
     setSelMember({ ...next[memberIdx], _idx: memberIdx })
-    setShowPayInput(false)
+    setShowPayPicker(false)
     if (amount > 0) showToast(`₹${amount} marked for ${MONTHS[monthIdx]}`)
     else showToast(`${MONTHS[monthIdx]} payment removed`)
   }
@@ -180,14 +177,8 @@ export default function Admin() {
 
   // ── CHANGE PASSWORD ──
   const handleChangePw = () => {
-    if (!newPw || newPw.length < 4) {
-      setPwError('Password must be at least 4 characters')
-      return
-    }
-    if (newPw !== confirmPw) {
-      setPwError('Passwords do not match')
-      return
-    }
+    if (!newPw || newPw.length < 4) { setPwError('Min 4 characters'); return }
+    if (newPw !== confirmPw) { setPwError('Passwords do not match'); return }
     setAdminPw(newPw)
     showToast('Password changed!')
     closeSheet()
@@ -195,28 +186,29 @@ export default function Admin() {
 
   // ── RESET ──
   const handleReset = async () => {
-    if (!resetConfirm) {
-      setResetConfirm(true)
-      return
-    }
+    if (!resetConfirm) { setResetConfirm(true); return }
     await resetData()
     showToast('All data reset!')
     closeSheet()
   }
 
-  // ── LOCKED STATE ──
+  // ══════════ LOCK SCREEN ══════════
   if (!isAdmin) {
     return (
-      <div className="admin-locked">
-        <div className="admin-lock-icon">
-          <Lock size={32} color="var(--green)" strokeWidth={2} />
-        </div>
-        <div className="admin-lock-title">Admin Access</div>
-        <div className="admin-lock-sub">Enter password to manage club data</div>
-        <div className="admin-lock-form">
-          <div style={{ position: 'relative' }}>
+      <div className="alock">
+        <div className="alock-bg" />
+        <div className="alock-overlay" />
+        <div className="alock-content">
+          <div className="alock-icon">
+            <Lock size={28} color="var(--green)" strokeWidth={2} />
+          </div>
+          <div className="alock-tag">Admin Access</div>
+          <div className="alock-title">Welcome<br />Back</div>
+          <div className="alock-sub">Enter your password to continue</div>
+
+          <div className="alock-input-wrap">
             <input
-              className="admin-pw-input"
+              className="alock-input"
               type={showPw ? 'text' : 'password'}
               placeholder="Enter password"
               value={pw}
@@ -224,70 +216,79 @@ export default function Admin() {
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
               autoFocus
             />
-            <button
-              onClick={() => setShowPw(!showPw)}
-              style={{
-                position: 'absolute', right: 14, top: '50%',
-                transform: 'translateY(-60%)',
-                background: 'none', border: 'none',
-                color: 'var(--t3)', cursor: 'pointer', padding: 4
-              }}>
-              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            <button className="alock-eye" onClick={() => setShowPw(!showPw)}>
+              {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
             </button>
           </div>
-          {pwError && <div className="admin-pw-error">{pwError}</div>}
-          <button className="admin-login-btn" onClick={handleLogin}>
-            Login
+          {pwError && <div className="alock-error">{pwError}</div>}
+          <button className="alock-btn" onClick={handleLogin}>
+            Login to Admin
           </button>
         </div>
       </div>
     )
   }
 
-  // ── UNLOCKED STATE ──
+  // ══════════ ADMIN PANEL ══════════
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-
+    <div className="apage">
       {toast && <Toast msg={toast} />}
 
       {/* ── HEADER ── */}
-      <div className="admin-header">
-        <div className="admin-header-top">
+      <div className="apage-header">
+        <div className="apage-header-inner">
           <div>
-            <div className="admin-title">Admin</div>
-            <div style={{ fontSize: 12, color: 'var(--t2)', marginTop: 2 }}>
-              Full access enabled
+            <div className="apage-tag">
+              <div className="apage-tag-dot" />
+              Full Access
             </div>
+            <div className="apage-h1">
+              Admin<br /><span>Panel</span>
+            </div>
+            <div className="apage-sub">Manage members, payments & expenses</div>
           </div>
-          <div className="admin-badge">
-            <ShieldCheck size={12} strokeWidth={2.5} />
-            Logged in
-          </div>
+          <button className="apage-logout"
+            onClick={() => { setIsAdmin(false); setPw('') }}>
+            <LogOut size={13} strokeWidth={2.5} />
+            Logout
+          </button>
         </div>
       </div>
 
-      <div className="admin-body">
+      <div className="apage-body">
 
         {/* ── QUICK ACTIONS ── */}
-        <div className="admin-section">
-          <div className="admin-section-label">Quick Actions</div>
-          <div className="admin-action-row">
-            <button className="admin-action-btn"
-              style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--green)', border: '1px solid rgba(34,197,94,0.2)' }}
+        <div className="asection">
+          <div className="asection-label">Quick Actions</div>
+          <div className="aquick">
+            <button className="aquick-btn"
+              style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.12)' }}
               onClick={() => setSheet('add-member')}>
-              <Plus size={15} strokeWidth={2.5} /> Add Member
+              <div className="aquick-btn-icon" style={{ background: 'rgba(34,197,94,0.12)' }}>
+                <Users size={16} color="var(--green)" strokeWidth={2.5} />
+              </div>
+              <div>
+                <div className="aquick-btn-label" style={{ color: 'var(--green)' }}>Add Member</div>
+                <div className="aquick-btn-sub" style={{ color: 'var(--green)' }}>New player</div>
+              </div>
             </button>
-            <button className="admin-action-btn"
-              style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.2)' }}
+            <button className="aquick-btn"
+              style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.12)' }}
               onClick={() => setSheet('add-expense')}>
-              <Plus size={15} strokeWidth={2.5} /> Add Expense
+              <div className="aquick-btn-icon" style={{ background: 'rgba(239,68,68,0.12)' }}>
+                <Receipt size={16} color="var(--red)" strokeWidth={2.5} />
+              </div>
+              <div>
+                <div className="aquick-btn-label" style={{ color: 'var(--red)' }}>Add Expense</div>
+                <div className="aquick-btn-sub" style={{ color: 'var(--red)' }}>Record spend</div>
+              </div>
             </button>
           </div>
         </div>
 
         {/* ── MEMBERS ── */}
-        <div className="admin-section">
-          <div className="admin-section-label">Members ({members.length})</div>
+        <div className="asection">
+          <div className="asection-label">Members ({members.length})</div>
           {members.length === 0 && (
             <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3)', fontSize: 13 }}>
               No members yet — tap Add Member
@@ -298,30 +299,31 @@ export default function Admin() {
             const paidCount = m.paid.filter(v => v > 0).length
             const total = m.paid.reduce((s, v) => s + v, 0)
             return (
-              <div key={i} className="admin-member-row"
+              <div key={i} className="amember-row"
+                style={{ animationDelay: `${i * 0.03}s` }}
                 onClick={() => { setSelMember({ ...m, _idx: i }); setSheet('member-detail') }}>
-                <div className="admin-member-avatar" style={{ background: bg, color: fg }}>
+                <div className="amember-avatar" style={{ background: bg, color: fg }}>
                   {m.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="admin-member-info">
-                  <div className="admin-member-name">{m.name}</div>
-                  <div className="admin-member-sub">{paidCount} months · ₹{total.toLocaleString()}</div>
+                <div className="amember-info">
+                  <div className="amember-name">{m.name}</div>
+                  <div className="amember-sub">{paidCount} months · ₹{total.toLocaleString()}</div>
                 </div>
-                <div className="admin-member-dots">
+                <div className="amember-dots">
                   {MONTHS.map((_, mi) => (
-                    <div key={mi} className="admin-member-dot"
+                    <div key={mi} className="amember-dot"
                       style={{ background: m.paid[mi] > 0 ? 'var(--green)' : 'rgba(255,255,255,0.08)' }} />
                   ))}
                 </div>
-                <ChevronRight size={14} color="var(--t3)" />
+                <ChevronRight size={14} color="var(--t3)" style={{ marginLeft: 4, flexShrink: 0 }} />
               </div>
             )
           })}
         </div>
 
         {/* ── RECENT EXPENSES ── */}
-        <div className="admin-section">
-          <div className="admin-section-label">Recent Expenses</div>
+        <div className="asection">
+          <div className="asection-label">Recent Expenses</div>
           {Object.entries(expenses)
             .flatMap(([cat, vals]) =>
               vals.map((v, mi) => v > 0 ? { cat, amount: v, mi } : null).filter(Boolean)
@@ -329,26 +331,16 @@ export default function Admin() {
             .sort((a, b) => b.mi - a.mi)
             .slice(0, 5)
             .map((e, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 12px', background: 'var(--card)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                borderRadius: 12, marginBottom: 8
-              }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 10,
-                  background: `${EXP_COLORS[e.cat] || '#6b7280'}18`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                }}>
-                  <div style={{ width: 7, height: 7, borderRadius: 2, background: EXP_COLORS[e.cat] || '#6b7280' }} />
+              <div key={i} className="aexp-row">
+                <div className="aexp-icon"
+                  style={{ background: `${EXP_COLORS[e.cat] || '#6b7280'}15` }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: EXP_COLORS[e.cat] || '#6b7280' }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>{e.cat}</div>
-                  <div style={{ fontSize: 11, color: 'var(--t3)' }}>{MONTHS[e.mi]} 2026</div>
+                  <div className="aexp-cat">{e.cat}</div>
+                  <div className="aexp-month">{MONTHS[e.mi]} 2026</div>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--red)', fontVariantNumeric: 'tabular-nums' }}>
-                  −₹{e.amount.toLocaleString()}
-                </div>
+                <div className="aexp-amount">−₹{e.amount.toLocaleString()}</div>
               </div>
             ))
           }
@@ -360,215 +352,163 @@ export default function Admin() {
         </div>
 
         {/* ── SETTINGS ── */}
-        <div className="admin-section">
-          <div className="admin-section-label">Settings</div>
+        <div className="asection">
+          <div className="asection-label">Settings</div>
 
-          <div className="settings-row"
+          <div className="asetting-row"
             onClick={() => { setNewBalance(String(oldBalance)); setSheet('edit-balance') }}>
-            <div className="settings-row-left">
-              <div className="settings-row-icon" style={{ background: 'rgba(59,130,246,0.1)' }}>
+            <div className="asetting-left">
+              <div className="asetting-icon" style={{ background: 'rgba(59,130,246,0.1)' }}>
                 <Wallet size={15} color="var(--blue)" strokeWidth={2} />
               </div>
               <div>
-                <div className="settings-row-label">Old Balance</div>
-                <div className="settings-row-sub">Carry-over · ₹{oldBalance.toLocaleString()}</div>
+                <div className="asetting-label">Old Balance</div>
+                <div className="asetting-sub">Carry-over · ₹{oldBalance.toLocaleString()}</div>
               </div>
             </div>
             <ChevronRight size={14} color="var(--t3)" />
           </div>
 
-          <div className="settings-row" onClick={() => setSheet('change-pw')}>
-            <div className="settings-row-left">
-              <div className="settings-row-icon" style={{ background: 'rgba(34,197,94,0.1)' }}>
+          <div className="asetting-row" onClick={() => setSheet('change-pw')}>
+            <div className="asetting-left">
+              <div className="asetting-icon" style={{ background: 'rgba(34,197,94,0.1)' }}>
                 <Lock size={15} color="var(--green)" strokeWidth={2} />
               </div>
               <div>
-                <div className="settings-row-label">Change Password</div>
-                <div className="settings-row-sub">Update admin password</div>
+                <div className="asetting-label">Change Password</div>
+                <div className="asetting-sub">Update admin password</div>
               </div>
             </div>
             <ChevronRight size={14} color="var(--t3)" />
           </div>
 
-          <div className="danger-zone" onClick={() => setSheet('reset')}>
-            <div className="settings-row-left">
-              <div className="settings-row-icon" style={{ background: 'rgba(239,68,68,0.1)' }}>
+          <div className="adanger-row" onClick={() => setSheet('reset')}>
+            <div className="asetting-left">
+              <div className="asetting-icon" style={{ background: 'rgba(239,68,68,0.1)' }}>
                 <AlertTriangle size={15} color="var(--red)" strokeWidth={2} />
               </div>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--red)' }}>Reset All Data</div>
-                <div style={{ fontSize: 11, color: 'rgba(239,68,68,0.5)', marginTop: 1 }}>Permanently delete everything</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)', letterSpacing: '-0.2px' }}>Reset All Data</div>
+                <div style={{ fontSize: 11, color: 'rgba(239,68,68,0.4)', marginTop: 2 }}>Permanently delete everything</div>
               </div>
             </div>
             <ChevronRight size={14} color="var(--red)" />
           </div>
-
-          <button className="logout-btn"
-            onClick={() => { setIsAdmin(false); setPw('') }}>
-            <LogOut size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            Logout
-          </button>
         </div>
 
       </div>
 
-      {/* ══════════════ SHEETS ══════════════ */}
+      {/* ══════════ SHEETS ══════════ */}
       {sheet && (
         <>
-          <div className="admin-sheet-overlay" onClick={closeSheet} />
-          <div className="admin-sheet">
-            <div className="admin-sheet-handle" />
+          <div className="asheet-overlay" onClick={closeSheet} />
+          <div className="asheet">
+            <div className="asheet-handle" />
 
-            {/* ── ADD MEMBER ── */}
+            {/* ADD MEMBER */}
             {sheet === 'add-member' && (
               <>
-                <div className="admin-sheet-header">
-                  <div className="admin-sheet-title">Add Member</div>
-                  <button className="admin-sheet-close" onClick={closeSheet}><X size={16} /></button>
+                <div className="asheet-header">
+                  <div className="asheet-title">Add Member</div>
+                  <button className="asheet-close" onClick={closeSheet}><X size={15} /></button>
                 </div>
-                <div className="admin-sheet-body">
-                  <label className="input-label-admin">Player Name</label>
-                  <input className="input-field-admin" placeholder="Enter full name"
-                    value={newName} onChange={e => setNewName(e.target.value)} autoFocus />
-                  <label className="input-label-admin">Joining Month</label>
-                  <select className="input-field-admin" value={newJoin}
+                <div className="asheet-body">
+                  <label className="aform-label">Player Name</label>
+                  <input className="aform-input" placeholder="Enter full name"
+                    value={newName} onChange={e => setNewName(e.target.value)}
+                    autoFocus onKeyDown={e => e.key === 'Enter' && handleAddMember()} />
+                  <label className="aform-label">Joining Month</label>
+                  <select className="aform-input" value={newJoin}
                     onChange={e => setNewJoin(parseInt(e.target.value))}
                     style={{ appearance: 'none' }}>
                     {MONTHS.map((m, i) => (
-                      <option key={i} value={i} style={{ background: '#0c130c' }}>{m}</option>
+                      <option key={i} value={i} style={{ background: '#080e08' }}>{m}</option>
                     ))}
                   </select>
-                  <button className="primary-btn-admin" onClick={handleAddMember} disabled={saving}>
-                    {saving ? 'Adding...' : 'Add Player'}
+                  <button className="aform-btn" onClick={handleAddMember} disabled={saving}>
+                    {saving ? 'Adding...' : 'Add to Squad'}
                   </button>
                 </div>
               </>
             )}
 
-            {/* ── MEMBER DETAIL ── */}
+            {/* MEMBER DETAIL */}
             {sheet === 'member-detail' && selMember && (
               <>
-                <div className="admin-sheet-header">
+                <div className="asheet-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div className="admin-member-avatar"
-                      style={{
-                        width: 34, height: 34, borderRadius: 10, fontSize: 13,
-                        background: getColor(selMember.name)[0],
-                        color: getColor(selMember.name)[1]
-                      }}>
+                    <div className="amember-avatar"
+                      style={{ width: 36, height: 36, borderRadius: 11, fontSize: 14,
+                        background: getColor(selMember.name)[0], color: getColor(selMember.name)[1] }}>
                       {selMember.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="admin-sheet-title">{selMember.name}</div>
-                  </div>
-                  <button className="admin-sheet-close" onClick={closeSheet}><X size={16} /></button>
-                </div>
-                <div className="admin-sheet-body">
-
-                  {/* stats */}
-                  <div style={{
-                    display: 'flex', gap: 0, marginBottom: 20,
-                    paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.05)'
-                  }}>
-                    {[
-                      { label: 'Total Paid', val: `₹${selMember.paid.reduce((s,v)=>s+v,0).toLocaleString()}`, color: 'var(--green)' },
-                      { label: 'Months Paid', val: `${selMember.paid.filter(v=>v>0).length}/12`, color: 'var(--t1)' },
-                    ].map((s, i) => (
-                      <div key={i} style={{
-                        flex: 1,
-                        paddingLeft: i > 0 ? 16 : 0,
-                        marginLeft: i > 0 ? 16 : 0,
-                        borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none'
-                      }}>
-                        <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{s.label}</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.val}</div>
+                    <div>
+                      <div className="asheet-title">{selMember.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--t2)', marginTop: 1 }}>
+                        ₹{selMember.paid.reduce((s,v)=>s+v,0).toLocaleString()} total · {selMember.paid.filter(v=>v>0).length}/12 months
                       </div>
-                    ))}
+                    </div>
                   </div>
-
-                  {/* payment grid */}
-                  <div style={{ fontSize: 11, color: 'var(--t2)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
-                    Tap month to toggle payment
+                  <button className="asheet-close" onClick={closeSheet}><X size={15} /></button>
+                </div>
+                <div className="asheet-body">
+                  <div style={{ fontSize: 10, color: 'var(--t2)', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>
+                    Tap month to toggle
                   </div>
-                  <div className="payment-grid-admin">
+                  <div className="apay-grid">
                     {MONTHS.map((mo, mi) => {
-                      const paid = selMember.paid[mi] > 0
+                      const v = members[selMember._idx]?.paid[mi] ?? selMember.paid[mi]
+                      const paid = v > 0
                       return (
                         <div key={mi}
-                          className={`payment-cell-admin ${paid ? 'paid' : 'unpaid'}`}
+                          className={`apay-cell ${paid ? 'paid' : 'unpaid'}`}
                           onClick={() => handleCellTap(selMember._idx, mi)}>
-                          {paid && <Check size={10} strokeWidth={3} />}
-                          <span>{mo}</span>
-                          {paid && (
-                            <span style={{ fontSize: 9, opacity: 0.8 }}>
-                              ₹{selMember.paid[mi]}
-                            </span>
-                          )}
+                          {paid
+                            ? <Check size={10} color="var(--green)" strokeWidth={3} />
+                            : <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+                          }
+                          <div className="apay-month">{mo}</div>
+                          {paid && <div className="apay-amt">₹{v}</div>}
                         </div>
                       )
                     })}
                   </div>
 
-                  {/* amount input popup */}
-                  {showPayInput && (
-                    <div style={{
-                      background: 'rgba(34,197,94,0.06)',
-                      border: '1px solid rgba(34,197,94,0.2)',
-                      borderRadius: 16, padding: 16, marginBottom: 16
-                    }}>
-                      <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  {/* pay amount picker */}
+                  {showPayPicker && (
+                    <div className="apay-picker">
+                      <div className="apay-picker-label">
                         {MONTHS[payMonthIdx]} — Enter Amount
                       </div>
-                      {/* quick amount buttons */}
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                      <div className="apay-quick">
                         {[100, 200, 500, 1200].map(amt => (
                           <button key={amt}
-                            onClick={() => setPayAmount(String(amt))}
-                            style={{
-                              flex: 1, padding: '8px 4px',
-                              borderRadius: 10, border: 'none',
-                              background: payAmount === String(amt) ? 'var(--green)' : 'rgba(255,255,255,0.05)',
-                              color: payAmount === String(amt) ? '#000' : 'var(--t2)',
-                              fontSize: 12, fontWeight: 700, cursor: 'pointer'
-                            }}>
+                            className={`apay-quick-btn ${payAmount === String(amt) ? 'on' : 'off'}`}
+                            onClick={() => setPayAmount(String(amt))}>
                             ₹{amt}
                           </button>
                         ))}
                       </div>
-                      <input
-                        className="input-field-admin"
-                        type="number"
+                      <input className="aform-input" type="number"
                         placeholder="Custom amount"
                         value={payAmount}
                         onChange={e => setPayAmount(e.target.value)}
-                        style={{ marginBottom: 10 }}
-                      />
+                        style={{ marginBottom: 10 }} />
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <button
-                          onClick={() => setShowPayInput(false)}
-                          style={{
-                            flex: 1, padding: 12,
-                            background: 'rgba(255,255,255,0.04)',
-                            color: 'var(--t2)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer'
-                          }}>
+                        <button onClick={() => setShowPayPicker(false)}
+                          style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.04)', color: 'var(--t2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                           Cancel
                         </button>
                         <button
                           onClick={() => handleTogglePay(selMember._idx, payMonthIdx, parseInt(payAmount) || 100)}
-                          style={{
-                            flex: 1, padding: 12,
-                            background: 'var(--green)', color: '#000',
-                            border: 'none', borderRadius: 12,
-                            fontSize: 13, fontWeight: 800, cursor: 'pointer'
-                          }}>
+                          style={{ flex: 1, padding: 11, background: 'var(--green)', color: '#000', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
                           Save ₹{payAmount}
                         </button>
                       </div>
                     </div>
                   )}
 
-                  <button className="danger-btn-admin"
+                  <button className="aform-danger"
                     onClick={() => handleRemoveMember(selMember._idx)}>
                     Remove Member
                   </button>
@@ -576,33 +516,32 @@ export default function Admin() {
               </>
             )}
 
-            {/* ── ADD EXPENSE ── */}
+            {/* ADD EXPENSE */}
             {sheet === 'add-expense' && (
               <>
-                <div className="admin-sheet-header">
-                  <div className="admin-sheet-title">Add Expense</div>
-                  <button className="admin-sheet-close" onClick={closeSheet}><X size={16} /></button>
+                <div className="asheet-header">
+                  <div className="asheet-title">Add Expense</div>
+                  <button className="asheet-close" onClick={closeSheet}><X size={15} /></button>
                 </div>
-                <div className="admin-sheet-body">
-                  <label className="input-label-admin">Category</label>
-                  <select className="input-field-admin" value={expCat}
+                <div className="asheet-body">
+                  <label className="aform-label">Category</label>
+                  <select className="aform-input" value={expCat}
                     onChange={e => setExpCat(e.target.value)} style={{ appearance: 'none' }}>
                     {EXP_CATS.map(c => (
-                      <option key={c} value={c} style={{ background: '#0c130c' }}>{c}</option>
+                      <option key={c} value={c} style={{ background: '#080e08' }}>{c}</option>
                     ))}
                   </select>
-                  <label className="input-label-admin">Month</label>
-                  <select className="input-field-admin" value={expMonth}
+                  <label className="aform-label">Month</label>
+                  <select className="aform-input" value={expMonth}
                     onChange={e => setExpMonth(parseInt(e.target.value))} style={{ appearance: 'none' }}>
                     {MONTHS.map((m, i) => (
-                      <option key={i} value={i} style={{ background: '#0c130c' }}>{m}</option>
+                      <option key={i} value={i} style={{ background: '#080e08' }}>{m}</option>
                     ))}
                   </select>
-                  <label className="input-label-admin">Amount (₹)</label>
-                  <input className="input-field-admin" type="number" placeholder="0"
+                  <label className="aform-label">Amount (₹)</label>
+                  <input className="aform-input" type="number" placeholder="0"
                     value={expAmount} onChange={e => setExpAmount(e.target.value)} />
-                  <button className="primary-btn-admin"
-                    onClick={handleAddExpense}
+                  <button className="aform-btn" onClick={handleAddExpense}
                     disabled={saving || !expAmount}>
                     {saving ? 'Saving...' : 'Add Expense'}
                   </button>
@@ -610,92 +549,84 @@ export default function Admin() {
               </>
             )}
 
-            {/* ── EDIT BALANCE ── */}
+            {/* EDIT BALANCE */}
             {sheet === 'edit-balance' && (
               <>
-                <div className="admin-sheet-header">
-                  <div className="admin-sheet-title">Edit Old Balance</div>
-                  <button className="admin-sheet-close" onClick={closeSheet}><X size={16} /></button>
+                <div className="asheet-header">
+                  <div className="asheet-title">Edit Old Balance</div>
+                  <button className="asheet-close" onClick={closeSheet}><X size={15} /></button>
                 </div>
-                <div className="admin-sheet-body">
-                  <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 16 }}>
-                    Carry-over balance from 2025 added to the total club balance.
+                <div className="asheet-body">
+                  <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 16, lineHeight: 1.5 }}>
+                    Carry-over balance from 2025 added to total club balance.
                   </div>
-                  <label className="input-label-admin">Balance (₹)</label>
-                  <input className="input-field-admin" type="number"
-                    placeholder="e.g. 3950"
-                    value={newBalance}
+                  <label className="aform-label">Balance (₹)</label>
+                  <input className="aform-input" type="number"
+                    placeholder="e.g. 3950" value={newBalance}
                     onChange={e => setNewBalance(e.target.value)} autoFocus />
-                  <button className="primary-btn-admin" onClick={handleEditBalance} disabled={saving}>
+                  <button className="aform-btn" onClick={handleEditBalance} disabled={saving}>
                     {saving ? 'Saving...' : 'Update Balance'}
                   </button>
                 </div>
               </>
             )}
 
-            {/* ── CHANGE PASSWORD ── */}
+            {/* CHANGE PASSWORD */}
             {sheet === 'change-pw' && (
               <>
-                <div className="admin-sheet-header">
-                  <div className="admin-sheet-title">Change Password</div>
-                  <button className="admin-sheet-close" onClick={closeSheet}><X size={16} /></button>
+                <div className="asheet-header">
+                  <div className="asheet-title">Change Password</div>
+                  <button className="asheet-close" onClick={closeSheet}><X size={15} /></button>
                 </div>
-                <div className="admin-sheet-body">
-                  <label className="input-label-admin">New Password</label>
-                  <input className="input-field-admin" type="password"
-                    placeholder="Min 4 characters"
-                    value={newPw}
+                <div className="asheet-body">
+                  <label className="aform-label">New Password</label>
+                  <input className="aform-input" type="password"
+                    placeholder="Min 4 characters" value={newPw}
                     onChange={e => { setNewPw(e.target.value); setPwError('') }} autoFocus />
-                  <label className="input-label-admin">Confirm Password</label>
-                  <input className="input-field-admin" type="password"
-                    placeholder="Repeat password"
-                    value={confirmPw}
+                  <label className="aform-label">Confirm Password</label>
+                  <input className="aform-input" type="password"
+                    placeholder="Repeat password" value={confirmPw}
                     onChange={e => { setConfirmPw(e.target.value); setPwError('') }} />
                   {pwError && (
                     <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 12, fontWeight: 600 }}>
                       {pwError}
                     </div>
                   )}
-                  <button className="primary-btn-admin" onClick={handleChangePw}>
+                  <button className="aform-btn" onClick={handleChangePw}>
                     Change Password
                   </button>
                 </div>
               </>
             )}
 
-            {/* ── RESET ── */}
+            {/* RESET */}
             {sheet === 'reset' && (
               <>
-                <div className="admin-sheet-header">
-                  <div className="admin-sheet-title" style={{ color: 'var(--red)' }}>Reset All Data</div>
-                  <button className="admin-sheet-close" onClick={closeSheet}><X size={16} /></button>
+                <div className="asheet-header">
+                  <div className="asheet-title" style={{ color: 'var(--red)' }}>Reset All Data</div>
+                  <button className="asheet-close" onClick={closeSheet}><X size={15} /></button>
                 </div>
-                <div className="admin-sheet-body">
-                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <AlertTriangle size={40} color="var(--red)" strokeWidth={1.5}
-                      style={{ marginBottom: 12 }} />
-                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 8 }}>
+                <div className="asheet-body">
+                  <div style={{ textAlign: 'center', padding: '16px 0 24px' }}>
+                    <div style={{ width: 56, height: 56, borderRadius: 18, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                      <AlertTriangle size={24} color="var(--red)" strokeWidth={2} />
+                    </div>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginBottom: 8, letterSpacing: '-0.3px' }}>
                       Are you sure?
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 24 }}>
+                    <div style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.6, marginBottom: 24 }}>
                       This will permanently delete all members, payments and expenses. This cannot be undone.
                     </div>
                     {resetConfirm && (
                       <div style={{ fontSize: 12, color: 'var(--red)', fontWeight: 700, marginBottom: 12 }}>
-                        Tap again to confirm deletion!
+                        Tap again to confirm!
                       </div>
                     )}
-                    <button className="danger-btn-admin"
-                      style={{ marginTop: 0 }} onClick={handleReset}>
+                    <button className="aform-danger" style={{ marginTop: 0 }} onClick={handleReset}>
                       {resetConfirm ? 'Yes, Delete Everything' : 'Reset All Data'}
                     </button>
-                    <button style={{
-                      width: '100%', padding: 13, marginTop: 8,
-                      background: 'rgba(255,255,255,0.04)',
-                      color: 'var(--t2)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer'
-                    }} onClick={closeSheet}>
+                    <button style={{ width: '100%', padding: 13, marginTop: 8, background: 'transparent', color: 'var(--t2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                      onClick={closeSheet}>
                       Cancel
                     </button>
                   </div>
