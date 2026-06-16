@@ -3,10 +3,5 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/gcc-app/',
-  resolve: {
-    alias: {
-      'react-is': 'react-is'
-    }
-  }
+  base: '/',
 })

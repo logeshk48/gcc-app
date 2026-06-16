@@ -16,7 +16,7 @@
   width: 100%;
   max-width: 430px;
   height: 520px;
-  background-image: url('/gcc-app/cricket-bg.jpeg');
+  background-image: url('/cricket-bg.jpeg');
   background-size: cover;
   background-position: center 70%;
   z-index: 0;
