@@ -3,7 +3,8 @@ import { useApp } from '../../context/AppContext'
 import {
   Lock, Plus, X, Check,
   Wallet, AlertTriangle, ChevronRight,
-  Eye, EyeOff, LogOut, Users, Receipt, Pencil
+  Eye, EyeOff, LogOut, Users, Receipt, Pencil,
+  IndianRupee
 } from 'lucide-react'
 import './Admin.css'
 
@@ -37,9 +38,10 @@ export default function Admin() {
     members, setMembers,
     expenses, setExpenses,
     oldBalance, setOldBalance,
+    monthlyRate, setMonthlyRate,
     isAdmin, setIsAdmin,
     saveData, resetData,
-    MONTHS, EXP_CATS
+    MONTHS, EXP_CATS, year
   } = useApp()
 
   // login
@@ -72,6 +74,7 @@ export default function Admin() {
   const [expMonth, setExpMonth] = useState(new Date().getMonth())
   const [expAmount, setExpAmount] = useState('')
   const [newBalance, setNewBalance] = useState('')
+  const [newMonthlyRate, setNewMonthlyRate] = useState('')
   const [newPw, setNewPw] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
   const [saving, setSaving] = useState(false)
@@ -88,6 +91,7 @@ export default function Admin() {
     setSelMember(null)
     setNewName(''); setNewJoin(0)
     setExpAmount(''); setNewBalance('')
+    setNewMonthlyRate('')
     setNewPw(''); setConfirmPw('')
     setResetConfirm(false)
     setSaving(false)
@@ -118,7 +122,7 @@ export default function Admin() {
     const paid = new Array(12).fill(0)
     const next = [...members, { name: newName.trim(), paid, joinMonth: newJoin }]
     setMembers(next)
-    await saveData(next, undefined, undefined)
+    await saveData(next, undefined, undefined, undefined)
     showToast(`${newName.trim()} added!`)
     closeSheet()
   }
@@ -130,7 +134,7 @@ export default function Admin() {
       i === selMember._idx ? { ...m, name: editName.trim() } : m
     )
     setMembers(next)
-    await saveData(next, undefined, undefined)
+    await saveData(next, undefined, undefined, undefined)
     setSelMember({ ...next[selMember._idx], _idx: selMember._idx })
     showToast('Name updated!')
     setShowEditName(false)
@@ -144,7 +148,7 @@ export default function Admin() {
       handleTogglePay(memberIdx, monthIdx, 0)
     } else {
       setPayMonthIdx(monthIdx)
-      setPayAmount('100')
+      setPayAmount(String(monthlyRate))
       setShowPayPicker(true)
     }
   }
@@ -158,7 +162,7 @@ export default function Admin() {
       return { ...m, paid }
     })
     setMembers(next)
-    await saveData(next, undefined, undefined)
+    await saveData(next, undefined, undefined, undefined)
     setSelMember({ ...next[memberIdx], _idx: memberIdx })
     setShowPayPicker(false)
     if (amount > 0) showToast(`₹${amount} marked for ${MONTHS[monthIdx]}`)
@@ -170,7 +174,7 @@ export default function Admin() {
     const name = members[idx].name
     const next = members.filter((_, i) => i !== idx)
     setMembers(next)
-    await saveData(next, undefined, undefined)
+    await saveData(next, undefined, undefined, undefined)
     showToast(`${name} removed`)
     closeSheet()
   }
@@ -185,7 +189,7 @@ export default function Admin() {
     else next[expCat] = [...next[expCat]]
     next[expCat][expMonth] += amt
     setExpenses(next)
-    await saveData(undefined, next, undefined)
+    await saveData(undefined, next, undefined, undefined)
     showToast(`₹${amt} added to ${expCat}`)
     closeSheet()
   }
@@ -198,7 +202,7 @@ export default function Admin() {
     next[editExp.cat] = [...next[editExp.cat]]
     next[editExp.cat][editExp.mi] = amt
     setExpenses(next)
-    await saveData(undefined, next, undefined)
+    await saveData(undefined, next, undefined, undefined)
     showToast(`Updated to ₹${amt}`)
     setEditExp(null)
     setEditExpAmount('')
@@ -210,7 +214,7 @@ export default function Admin() {
     next[cat] = [...next[cat]]
     next[cat][mi] = 0
     setExpenses(next)
-    await saveData(undefined, next, undefined)
+    await saveData(undefined, next, undefined, undefined)
     showToast(`${cat} expense removed`)
   }
 
@@ -220,8 +224,19 @@ export default function Admin() {
     if (isNaN(val)) return
     setSaving(true)
     setOldBalance(val)
-    await saveData(undefined, undefined, val)
+    await saveData(undefined, undefined, val, undefined)
     showToast('Balance updated!')
+    closeSheet()
+  }
+
+  // ── EDIT MONTHLY RATE ──
+  const handleEditRate = async () => {
+    const val = parseInt(newMonthlyRate)
+    if (isNaN(val) || val <= 0) return
+    setSaving(true)
+    setMonthlyRate(val)
+    await saveData(undefined, undefined, undefined, val)
+    showToast(`Monthly rate updated to ₹${val}!`)
     closeSheet()
   }
 
@@ -300,7 +315,7 @@ export default function Admin() {
           <div>
             <div className="apage-tag">
               <div className="apage-tag-dot" />
-              Full Access
+              Season {year}
             </div>
             <div className="apage-h1">
               Admin<br /><span>Panel</span>
@@ -387,20 +402,17 @@ export default function Admin() {
         {/* ── EXPENSES ── */}
         <div className="asection">
           <div className="asection-label">Expenses ({allExpItems.length})</div>
-
           {allExpItems.length === 0 && (
             <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--t3)', fontSize: 13 }}>
               No expenses yet
             </div>
           )}
-
           {allExpItems.map((e, i) => (
             <div key={i} className="aexp-row">
               <div className="aexp-icon"
                 style={{ background: `${EXP_COLORS[e.cat] || '#6b7280'}15` }}>
                 <div style={{ width: 8, height: 8, borderRadius: 2, background: EXP_COLORS[e.cat] || '#6b7280' }} />
               </div>
-
               {editExp && editExp.cat === e.cat && editExp.mi === e.mi ? (
                 <div style={{ flex: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
                   <input
@@ -429,7 +441,7 @@ export default function Admin() {
                 <>
                   <div style={{ flex: 1 }}>
                     <div className="aexp-cat">{e.cat}</div>
-                    <div className="aexp-month">{MONTHS[e.mi]} 2026</div>
+                    <div className="aexp-month">{MONTHS[e.mi]} {year}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div className="aexp-amount">−₹{e.amount.toLocaleString()}</div>
@@ -466,6 +478,7 @@ export default function Admin() {
         <div className="asection">
           <div className="asection-label">Settings</div>
 
+          {/* Old Balance */}
           <div className="asetting-row"
             onClick={() => { setNewBalance(String(oldBalance)); setSheet('edit-balance') }}>
             <div className="asetting-left">
@@ -480,10 +493,26 @@ export default function Admin() {
             <ChevronRight size={14} color="var(--t3)" />
           </div>
 
-          <div className="asetting-row" onClick={() => setSheet('change-pw')}>
+          {/* Monthly Rate */}
+          <div className="asetting-row"
+            onClick={() => { setNewMonthlyRate(String(monthlyRate)); setSheet('edit-rate') }}>
             <div className="asetting-left">
               <div className="asetting-icon" style={{ background: 'rgba(34,197,94,0.1)' }}>
-                <Lock size={15} color="var(--green)" strokeWidth={2} />
+                <IndianRupee size={15} color="var(--green)" strokeWidth={2} />
+              </div>
+              <div>
+                <div className="asetting-label">Monthly Rate</div>
+                <div className="asetting-sub">₹{monthlyRate} per member per month</div>
+              </div>
+            </div>
+            <ChevronRight size={14} color="var(--t3)" />
+          </div>
+
+          {/* Change Password */}
+          <div className="asetting-row" onClick={() => setSheet('change-pw')}>
+            <div className="asetting-left">
+              <div className="asetting-icon" style={{ background: 'rgba(168,85,247,0.1)' }}>
+                <Lock size={15} color="#a855f7" strokeWidth={2} />
               </div>
               <div>
                 <div className="asetting-label">Change Password</div>
@@ -493,6 +522,7 @@ export default function Admin() {
             <ChevronRight size={14} color="var(--t3)" />
           </div>
 
+          {/* Reset */}
           <div className="adanger-row" onClick={() => setSheet('reset')}>
             <div className="asetting-left">
               <div className="asetting-icon" style={{ background: 'rgba(239,68,68,0.1)' }}>
@@ -638,7 +668,7 @@ export default function Admin() {
                         {MONTHS[payMonthIdx]} — Enter Amount
                       </div>
                       <div className="apay-quick">
-                        {[100, 200, 500, 1200].map(amt => (
+                        {[monthlyRate, monthlyRate*2, monthlyRate*5, monthlyRate*12].map(amt => (
                           <button key={amt}
                             className={`apay-quick-btn ${payAmount === String(amt) ? 'on' : 'off'}`}
                             onClick={() => setPayAmount(String(amt))}>
@@ -657,7 +687,7 @@ export default function Admin() {
                           Cancel
                         </button>
                         <button
-                          onClick={() => handleTogglePay(selMember._idx, payMonthIdx, parseInt(payAmount) || 100)}
+                          onClick={() => handleTogglePay(selMember._idx, payMonthIdx, parseInt(payAmount) || monthlyRate)}
                           style={{ flex: 1, padding: 11, background: 'var(--green)', color: '#000', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
                           Save ₹{payAmount}
                         </button>
@@ -715,7 +745,7 @@ export default function Admin() {
                 </div>
                 <div className="asheet-body">
                   <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 16, lineHeight: 1.5 }}>
-                    Carry-over balance from 2025 added to total club balance.
+                    Carry-over balance from {year - 1} added to total club balance.
                   </div>
                   <label className="aform-label">Balance (₹)</label>
                   <input className="aform-input" type="number"
@@ -723,6 +753,29 @@ export default function Admin() {
                     onChange={e => setNewBalance(e.target.value)} autoFocus />
                   <button className="aform-btn" onClick={handleEditBalance} disabled={saving}>
                     {saving ? 'Saving...' : 'Update Balance'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* EDIT MONTHLY RATE */}
+            {sheet === 'edit-rate' && (
+              <>
+                <div className="asheet-header">
+                  <div className="asheet-title">Monthly Rate</div>
+                  <button className="asheet-close" onClick={closeSheet}><X size={15} /></button>
+                </div>
+                <div className="asheet-body">
+                  <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 16, lineHeight: 1.5 }}>
+                    Amount each member pays per month. Currently ₹{monthlyRate}.
+                    This affects dues calculation for all members.
+                  </div>
+                  <label className="aform-label">Rate (₹)</label>
+                  <input className="aform-input" type="number"
+                    placeholder="e.g. 100" value={newMonthlyRate}
+                    onChange={e => setNewMonthlyRate(e.target.value)} autoFocus />
+                  <button className="aform-btn" onClick={handleEditRate} disabled={saving}>
+                    {saving ? 'Saving...' : 'Update Rate'}
                   </button>
                 </div>
               </>

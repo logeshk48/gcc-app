@@ -1,5 +1,5 @@
 import { useApp } from '../../context/AppContext'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, Target,
@@ -27,7 +27,6 @@ function Skeleton({ w = '100%', h = 20, r = 8 }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: r }} />
 }
 
-// ── SVG 3D Bar Chart ──
 function SVG3DBarChart({ data }) {
   const W = 340, H = 160
   const pL = 8, pR = 16, pT = 10, pB = 24
@@ -39,65 +38,32 @@ function SVG3DBarChart({ data }) {
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
-      {/* grid lines */}
       {[0.25, 0.5, 0.75, 1].map(p => (
         <line key={p}
           x1={pL} y1={pT + cH * (1-p)}
           x2={W-pR} y2={pT + cH * (1-p)}
           stroke="rgba(255,255,255,0.04)" strokeWidth={1} strokeDasharray="3 3" />
       ))}
-
       {data.map((d, i) => {
         const cx = pL + i * slotW + slotW / 2
         const colH = Math.max((d.col / max) * cH, d.col > 0 ? 4 : 0)
         const expH = Math.max((d.exp / max) * cH, d.exp > 0 ? 4 : 0)
         const cx1 = cx - bW - 2
         const cx2 = cx + 2
-
         return (
           <g key={i}>
-            {/* Collection 3D bar */}
             {d.col > 0 && <>
-              {/* front */}
               <rect x={cx1} y={pT+cH-colH} width={bW} height={colH} rx={2} fill="#22c55e" />
-              {/* right side */}
-              <polygon points={`
-                ${cx1+bW},${pT+cH-colH}
-                ${cx1+bW+depth},${pT+cH-colH-depth}
-                ${cx1+bW+depth},${pT+cH-depth}
-                ${cx1+bW},${pT+cH}
-              `} fill="#16a34a" />
-              {/* top */}
-              <polygon points={`
-                ${cx1},${pT+cH-colH}
-                ${cx1+depth},${pT+cH-colH-depth}
-                ${cx1+bW+depth},${pT+cH-colH-depth}
-                ${cx1+bW},${pT+cH-colH}
-              `} fill="#4ade80" />
+              <polygon points={`${cx1+bW},${pT+cH-colH} ${cx1+bW+depth},${pT+cH-colH-depth} ${cx1+bW+depth},${pT+cH-depth} ${cx1+bW},${pT+cH}`} fill="#16a34a" />
+              <polygon points={`${cx1},${pT+cH-colH} ${cx1+depth},${pT+cH-colH-depth} ${cx1+bW+depth},${pT+cH-colH-depth} ${cx1+bW},${pT+cH-colH}`} fill="#4ade80" />
             </>}
-
-            {/* Expense 3D bar */}
             {d.exp > 0 && <>
               <rect x={cx2} y={pT+cH-expH} width={bW} height={expH} rx={2} fill="#ef4444" />
-              <polygon points={`
-                ${cx2+bW},${pT+cH-expH}
-                ${cx2+bW+depth},${pT+cH-expH-depth}
-                ${cx2+bW+depth},${pT+cH-depth}
-                ${cx2+bW},${pT+cH}
-              `} fill="#b91c1c" />
-              <polygon points={`
-                ${cx2},${pT+cH-expH}
-                ${cx2+depth},${pT+cH-expH-depth}
-                ${cx2+bW+depth},${pT+cH-expH-depth}
-                ${cx2+bW},${pT+cH-expH}
-              `} fill="#fca5a5" />
+              <polygon points={`${cx2+bW},${pT+cH-expH} ${cx2+bW+depth},${pT+cH-expH-depth} ${cx2+bW+depth},${pT+cH-depth} ${cx2+bW},${pT+cH}`} fill="#b91c1c" />
+              <polygon points={`${cx2},${pT+cH-expH} ${cx2+depth},${pT+cH-expH-depth} ${cx2+bW+depth},${pT+cH-expH-depth} ${cx2+bW},${pT+cH-expH}`} fill="#fca5a5" />
             </>}
-
-            {/* month label */}
             <text x={cx} y={H-6} textAnchor="middle" fontSize={9}
-              fill="rgba(255,255,255,0.25)" fontWeight="600">
-              {d.month}
-            </text>
+              fill="rgba(255,255,255,0.25)" fontWeight="600">{d.month}</text>
           </g>
         )
       })}
@@ -105,7 +71,6 @@ function SVG3DBarChart({ data }) {
   )
 }
 
-// ── SVG Area Chart ──
 function SVGAreaChart({ data }) {
   if (data.length < 2) return null
   const W = 340, H = 100, pL = 8, pR = 16, pT = 8, pB = 8
@@ -119,7 +84,6 @@ function SVGAreaChart({ data }) {
   }))
   const line = pts.map((p, i) => `${i===0?'M':'L'}${p.x},${p.y}`).join(' ')
   const area = `${line} L${pts[pts.length-1].x},${pT+cH} L${pts[0].x},${pT+cH} Z`
-
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
       <defs>
@@ -143,9 +107,7 @@ function SVGAreaChart({ data }) {
         <text key={i}
           x={pL + (i / (data.length-1)) * cW}
           y={H-1} textAnchor="middle" fontSize={9}
-          fill="rgba(255,255,255,0.2)" fontWeight="600">
-          {d.month}
-        </text>
+          fill="rgba(255,255,255,0.2)" fontWeight="600">{d.month}</text>
       ))}
     </svg>
   )
@@ -163,7 +125,8 @@ const TABS = ['Contributors', 'Behind', 'Expenses', 'Monthly']
 export default function Dashboard() {
   const {
     currentBalance, monthlyCollection, monthlyExpenses,
-    members, expenses, loading, MONTHS
+    members, expenses, loading, MONTHS, year, oldBalance,
+    monthlyRate
   } = useApp()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState(0)
@@ -173,18 +136,17 @@ export default function Dashboard() {
   const activeMembers = members.filter(m => m.paid.some(p => p > 0)).length
   const curMonth = new Date().getMonth()
 
-  // ── CORRECT DUES LOGIC ──
-  // Due amount = (months since first payment × 100) - total paid
-  // If total paid >= 1200 (advance full year) → not due
+  // ── DUES LOGIC with dynamic monthlyRate ──
   const pendingMembers = members.map(m => {
     const totalPaid = m.paid.reduce((s, v) => s + v, 0)
-    if (totalPaid >= 1200) return null // advance paid full year
+    // advance paid full year
+    if (totalPaid >= monthlyRate * 12) return null
     const firstPaidMonth = m.paid.findIndex(v => v > 0)
-    if (firstPaidMonth === -1) return null // never paid
+    if (firstPaidMonth === -1) return null
     const monthsExpected = curMonth - firstPaidMonth + 1
-    const expectedAmount = monthsExpected * 100
+    const expectedAmount = monthsExpected * monthlyRate
     const dueAmount = expectedAmount - totalPaid
-    if (dueAmount <= 0) return null // all paid up
+    if (dueAmount <= 0) return null
     return { ...m, dueAmount, monthsExpected, totalPaid }
   }).filter(Boolean)
 
@@ -202,7 +164,8 @@ export default function Dashboard() {
     })
   }
 
-  const targetPerMonth = members.length * 100
+  // use monthlyRate for target calculation
+  const targetPerMonth = members.length * monthlyRate
   const avgMonthlyCol = totalCol / (monthlyCollection.filter(v => v > 0).length || 1)
   const monthsLeft = 12 - curMonth - 1
   const colPct = Math.min(Math.round((totalCol / ((targetPerMonth * 12) || 1)) * 100), 100)
@@ -235,7 +198,7 @@ export default function Dashboard() {
               boxShadow: '0 0 6px var(--green)',
               animation: 'pulse 2s infinite'
             }} />
-            Golden Cricket Club · 2026
+            Golden Cricket Club · {year}
           </div>
           {loading
             ? <Skeleton w={200} h={62} r={12} />
@@ -247,15 +210,15 @@ export default function Dashboard() {
           </div>
           <div className="dash-hero-glass">
             {[
-              { label: 'Carry-over', val: '₹3,950', color: 'rgba(255,255,255,0.65)' },
-              { label: '2026 Net', val: `${totalCol-totalExp>=0?'+':''}₹${(totalCol-totalExp).toLocaleString()}`, color: totalCol-totalExp>=0?'#22c55e':'#ef4444' },
-              { label: 'Players', val: activeMembers, color: 'rgba(255,255,255,0.65)' },
-              { label: 'Dues', val: pendingMembers.length, color: pendingMembers.length>0?'#f59e0b':'#22c55e' },
+              { label: 'Carry-over', val: `₹${oldBalance.toLocaleString()}`,                                                    color: 'rgba(255,255,255,0.65)' },
+              { label: `${year} Net`, val: `${totalCol-totalExp>=0?'+':''}₹${(totalCol-totalExp).toLocaleString()}`,            color: totalCol-totalExp>=0?'#22c55e':'#ef4444' },
+              { label: 'Players',    val: activeMembers,                                                                         color: 'rgba(255,255,255,0.65)' },
+              { label: 'Dues',       val: pendingMembers.length,                                                                 color: pendingMembers.length>0?'#f59e0b':'#22c55e' },
             ].map((s, i, arr) => (
               <div key={i} className="dash-hero-stat" style={{
                 paddingRight: i < arr.length-1 ? 12 : 0,
-                marginRight: i < arr.length-1 ? 12 : 0,
-                borderRight: i < arr.length-1 ? '1px solid rgba(255,255,255,0.08)' : 'none'
+                marginRight:  i < arr.length-1 ? 12 : 0,
+                borderRight:  i < arr.length-1 ? '1px solid rgba(255,255,255,0.08)' : 'none'
               }}>
                 <div className="dash-hero-stat-label">{s.label}</div>
                 <div className="dash-hero-stat-val" style={{ color: s.color }}>{s.val}</div>
@@ -271,7 +234,7 @@ export default function Dashboard() {
         {/* SEASON PROGRESS */}
         <div className="dash-section" style={{ animationDelay: '0.05s' }}>
           <div className="dash-section-eyebrow">Season Progress</div>
-          <div className="dash-section-title">2026 at a Glance</div>
+          <div className="dash-section-title">{year} at a Glance</div>
           <div className="dash-progress-wrap">
             <div className="dash-progress-top">
               <span className="dash-progress-label">Annual Collection Target</span>
@@ -286,9 +249,9 @@ export default function Dashboard() {
           </div>
           <div className="dash-stat-row">
             {[
-              { icon: Target, label: 'Avg / Month', val: `₹${Math.round(avgMonthlyCol).toLocaleString()}`, color: 'var(--green)' },
-              { icon: Calendar, label: 'Months Left', val: monthsLeft, color: 'var(--amber)' },
-              { icon: BarChart2, label: 'Peak Month', val: monthlyCollection.some(v=>v>0) ? MONTHS[monthlyCollection.indexOf(Math.max(...monthlyCollection))] : '—', color: 'var(--blue)' },
+              { icon: Target,    label: 'Avg / Month', val: `₹${Math.round(avgMonthlyCol).toLocaleString()}`, color: 'var(--green)' },
+              { icon: Calendar,  label: 'Months Left',  val: monthsLeft,                                       color: 'var(--amber)' },
+              { icon: BarChart2, label: 'Peak Month',   val: monthlyCollection.some(v=>v>0) ? MONTHS[monthlyCollection.indexOf(Math.max(...monthlyCollection))] : '—', color: 'var(--blue)' },
             ].map((s, i) => (
               <div key={i} className="dash-stat-item">
                 <div className="dash-stat-icon-row">
@@ -327,7 +290,6 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-
           {loading
             ? <Skeleton h={160} r={8} />
             : <SVG3DBarChart data={chartData} />
@@ -360,7 +322,7 @@ export default function Dashboard() {
 
         <div className="dash-divider" />
 
-        {/* ── 4 TABS ── */}
+        {/* 4 TABS */}
         <div className="dash-section" style={{ animationDelay: '0.2s' }}>
           <div className="dash-tabs">
             {TABS.map((t, i) => (
@@ -428,7 +390,6 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <>
-                    {/* total dues summary */}
                     <div style={{
                       background: 'rgba(245,158,11,0.06)',
                       border: '1px solid rgba(245,158,11,0.15)',
@@ -453,14 +414,13 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
-
                     {pendingMembers.map((m, i) => (
                       <div key={i} className="dash-due-row">
                         <div className="dash-due-avatar">{m.name.charAt(0).toUpperCase()}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div className="dash-due-name">{m.name}</div>
                           <div className="dash-due-sub">
-                            Paid ₹{m.totalPaid} of ₹{m.monthsExpected * 100} expected
+                            Paid ₹{m.totalPaid} of ₹{m.monthsExpected * monthlyRate} expected
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -499,7 +459,7 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <div className="dash-exp-cat">{e.cat}</div>
-                          <div className="dash-exp-month">{e.month} 2026</div>
+                          <div className="dash-exp-month">{e.month} {year}</div>
                         </div>
                       </div>
                       <div className="dash-exp-amount">−₹{e.amount.toLocaleString()}</div>

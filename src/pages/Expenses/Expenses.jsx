@@ -16,7 +16,7 @@ const EXP_COLORS = {
 }
 
 export default function Expenses() {
-  const { expenses, setExpenses, saveData, loading, MONTHS, EXP_CATS, isAdmin } = useApp()
+  const { expenses, setExpenses, saveData, loading, MONTHS, EXP_CATS, isAdmin, year } = useApp()
   const [selMonth, setSelMonth] = useState('all')
   const [showAdd, setShowAdd] = useState(false)
   const [addCat, setAddCat] = useState(EXP_CATS[0])
@@ -83,7 +83,7 @@ export default function Expenses() {
           <div>
             <div className="epage-tag">
               <div className="epage-tag-dot" />
-              Season 2026
+              Season {year}
             </div>
             <div className="epage-h1">
               Club<br /><span>Expenses</span>
@@ -143,9 +143,9 @@ export default function Expenses() {
         {grandTotal > 0 && (
           <div className="epage-summary" style={{ marginBottom: 28 }}>
             {[
-              { label: 'Total',    val: `₹${filteredTotal.toLocaleString()}`,  color: 'var(--red)'   },
-              { label: 'Categories', val: catTotals.length,                    color: '#fff'          },
-              { label: 'Peak Month', val: peakMonth,                           color: 'var(--amber)'  },
+              { label: 'Total',      val: `₹${filteredTotal.toLocaleString()}`, color: 'var(--red)'   },
+              { label: 'Categories', val: catTotals.length,                     color: '#fff'          },
+              { label: 'Peak Month', val: peakMonth,                            color: 'var(--amber)'  },
             ].map((s, i) => (
               <div key={i} className="epage-summary-item">
                 <div className="epage-summary-label">{s.label}</div>
@@ -221,7 +221,7 @@ export default function Expenses() {
                   </div>
                   <div className="eitem-info">
                     <div className="eitem-cat">{e.cat}</div>
-                    <div className="eitem-month">{MONTHS[e.monthIdx]} 2026</div>
+                    <div className="eitem-month">{MONTHS[e.monthIdx]} {year}</div>
                   </div>
                   <div className="eitem-amount">−₹{e.amount.toLocaleString()}</div>
                 </div>
