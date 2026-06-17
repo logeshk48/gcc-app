@@ -28,8 +28,8 @@ export default function BottomNav() {
     const el = tabRefs.current[activeIdx]
     if (el) {
       setIndicatorStyle({
-        left: el.offsetLeft,
-        width: el.offsetWidth,
+        left: el.offsetLeft + 4,
+        width: el.offsetWidth - 8,
       })
     }
   }, [activeIdx])
@@ -44,22 +44,21 @@ export default function BottomNav() {
       WebkitBackdropFilter: 'blur(24px)',
       border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: 28, display: 'flex',
-      zIndex: 100, padding: '8px 4px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.05)',
-      position: 'fixed',
+      zIndex: 100, padding: '6px 4px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
     }}>
 
-      {/* sliding green pill indicator */}
+      {/* sliding green pill */}
       <div style={{
         position: 'absolute',
-        top: 8, bottom: 8,
-        borderRadius: 20,
+        top: 6, bottom: 6,
+        borderRadius: 22,
         background: 'rgba(34,197,94,0.12)',
-        border: '1px solid rgba(34,197,94,0.2)',
+        border: '1px solid rgba(34,197,94,0.25)',
+        boxShadow: '0 0 12px rgba(34,197,94,0.1)',
         transition: 'all 0.4s cubic-bezier(0.34,1.56,0.64,1)',
         pointerEvents: 'none',
         ...indicatorStyle,
-        margin: '0 2px',
       }} />
 
       {tabs.map((t, i) => {
@@ -73,31 +72,31 @@ export default function BottomNav() {
             style={{
               flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
-              padding: '8px 4px', textDecoration: 'none', gap: 4,
-              borderRadius: 20, margin: '0 2px',
+              padding: '6px 4px', textDecoration: 'none', gap: 3,
+              borderRadius: 22, margin: '0 2px',
               position: 'relative', zIndex: 1,
-              transition: 'transform 0.2s ease',
             }}
             onClick={() => setActiveIdx(i)}
           >
             <div style={{
               transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)',
-              transform: isActive ? 'translateY(-1px) scale(1.1)' : 'translateY(0) scale(1)',
+              transform: isActive ? 'translateY(-2px) scale(1.15)' : 'translateY(0) scale(1)',
             }}>
               <t.icon
-                size={19}
+                size={18}
                 strokeWidth={isActive ? 2.5 : 1.8}
-                color={isActive ? 'var(--green)' : 'var(--t3)'}
+                color={isActive ? '#22c55e' : '#3d4d3d'}
                 style={{
                   transition: 'all 0.3s ease',
-                  filter: isActive ? 'drop-shadow(0 0 4px rgba(34,197,94,0.5))' : 'none',
+                  filter: isActive ? 'drop-shadow(0 0 5px rgba(34,197,94,0.6))' : 'none',
+                  display: 'block',
                 }}
               />
             </div>
             <span style={{
-              fontSize: 10,
-              fontWeight: isActive ? 700 : 400,
-              color: isActive ? 'var(--green)' : 'var(--t3)',
+              fontSize: 9,
+              fontWeight: isActive ? 700 : 500,
+              color: isActive ? '#22c55e' : '#3d4d3d',
               letterSpacing: 0.3,
               transition: 'all 0.3s ease',
               transform: isActive ? 'scale(1.05)' : 'scale(1)',
