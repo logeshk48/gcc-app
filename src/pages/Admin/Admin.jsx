@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import {
-  Lock, Plus, X, Check,
+  Lock, X, Check,
   Wallet, AlertTriangle, ChevronRight,
   Eye, EyeOff, LogOut, Users, Receipt, Pencil,
   IndianRupee
@@ -44,30 +44,28 @@ export default function Admin() {
     MONTHS, EXP_CATS, year
   } = useApp()
 
-  // login
   const [pw, setPw] = useState('')
   const [pwError, setPwError] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [adminPw, setAdminPw] = useState(DEFAULT_PASSWORD)
 
-  // sheets
   const [sheet, setSheet] = useState(null)
   const [selMember, setSelMember] = useState(null)
 
-  // pay amount
+  // member detail is now a MODAL, not a sheet
+  const [showMemberModal, setShowMemberModal] = useState(false)
+
   const [payAmount, setPayAmount] = useState('100')
   const [payMonthIdx, setPayMonthIdx] = useState(null)
   const [showPayPicker, setShowPayPicker] = useState(false)
+  const [payMemberIdx, setPayMemberIdx] = useState(null)
 
-  // edit name
   const [editName, setEditName] = useState('')
   const [showEditName, setShowEditName] = useState(false)
 
-  // edit expense
   const [editExp, setEditExp] = useState(null)
   const [editExpAmount, setEditExpAmount] = useState('')
 
-  // forms
   const [newName, setNewName] = useState('')
   const [newJoin, setNewJoin] = useState(0)
   const [expCat, setExpCat] = useState(EXP_CATS[0])
@@ -86,36 +84,50 @@ export default function Admin() {
     setTimeout(() => setToast(''), 2500)
   }
 
+  const openSheet = (name) => {
+    setSheet(name)
+  }
+
   const closeSheet = () => {
     setSheet(null)
-    setSelMember(null)
     setNewName(''); setNewJoin(0)
     setExpAmount(''); setNewBalance('')
     setNewMonthlyRate('')
     setNewPw(''); setConfirmPw('')
     setResetConfirm(false)
     setSaving(false)
-    setShowPayPicker(false)
-    setPayAmount('100')
     setPwError('')
-    setShowEditName(false)
-    setEditName('')
     setEditExp(null)
     setEditExpAmount('')
   }
 
-  // ── LOGIN ──
+  const openMemberModal = (m) => {
+    setSelMember(m)
+    setShowMemberModal(true)
+  }
+
+  const closeMemberModal = () => {
+    setShowMemberModal(false)
+    setSelMember(null)
+    setShowEditName(false)
+    setEditName('')
+  }
+
+  const closePayPicker = () => {
+    setShowPayPicker(false)
+    setPayAmount(String(monthlyRate))
+    setPayMonthIdx(null)
+    setPayMemberIdx(null)
+  }
+
   const handleLogin = () => {
     if (pw === adminPw) {
-      setIsAdmin(true)
-      setPwError('')
-      setPw('')
+      setIsAdmin(true); setPwError(''); setPw('')
     } else {
       setPwError('Wrong password. Try again.')
     }
   }
 
-  // ── ADD MEMBER ──
   const handleAddMember = async () => {
     if (!newName.trim()) return
     setSaving(true)
@@ -127,7 +139,6 @@ export default function Admin() {
     closeSheet()
   }
 
-  // ── EDIT NAME ──
   const handleEditName = async () => {
     if (!editName.trim()) return
     const next = members.map((m, i) =>
@@ -141,19 +152,18 @@ export default function Admin() {
     setEditName('')
   }
 
-  // ── CELL TAP ──
   const handleCellTap = (memberIdx, monthIdx) => {
     const current = members[memberIdx].paid[monthIdx]
     if (current > 0) {
       handleTogglePay(memberIdx, monthIdx, 0)
     } else {
+      setPayMemberIdx(memberIdx)
       setPayMonthIdx(monthIdx)
       setPayAmount(String(monthlyRate))
       setShowPayPicker(true)
     }
   }
 
-  // ── TOGGLE PAYMENT ──
   const handleTogglePay = async (memberIdx, monthIdx, amount) => {
     const next = members.map((m, i) => {
       if (i !== memberIdx) return m
@@ -164,22 +174,24 @@ export default function Admin() {
     setMembers(next)
     await saveData(next, undefined, undefined, undefined)
     setSelMember({ ...next[memberIdx], _idx: memberIdx })
-    setShowPayPicker(false)
+    closePayPicker()
     if (amount > 0) showToast(`₹${amount} marked for ${MONTHS[monthIdx]}`)
     else showToast(`${MONTHS[monthIdx]} payment removed`)
   }
 
-  // ── REMOVE MEMBER ──
+  const handleSavePay = () => {
+    handleTogglePay(payMemberIdx, payMonthIdx, parseInt(payAmount) || monthlyRate)
+  }
+
   const handleRemoveMember = async (idx) => {
     const name = members[idx].name
     const next = members.filter((_, i) => i !== idx)
     setMembers(next)
     await saveData(next, undefined, undefined, undefined)
     showToast(`${name} removed`)
-    closeSheet()
+    closeMemberModal()
   }
 
-  // ── ADD EXPENSE ──
   const handleAddExpense = async () => {
     const amt = parseInt(expAmount)
     if (!amt || amt <= 0) return
@@ -194,7 +206,6 @@ export default function Admin() {
     closeSheet()
   }
 
-  // ── EDIT EXPENSE ──
   const handleEditExpense = async () => {
     const amt = parseInt(editExpAmount)
     if (!amt || amt <= 0) return
@@ -208,7 +219,6 @@ export default function Admin() {
     setEditExpAmount('')
   }
 
-  // ── DELETE EXPENSE ──
   const handleDeleteExpense = async (cat, mi) => {
     const next = { ...expenses }
     next[cat] = [...next[cat]]
@@ -218,7 +228,6 @@ export default function Admin() {
     showToast(`${cat} expense removed`)
   }
 
-  // ── EDIT BALANCE ──
   const handleEditBalance = async () => {
     const val = parseInt(newBalance)
     if (isNaN(val)) return
@@ -229,7 +238,6 @@ export default function Admin() {
     closeSheet()
   }
 
-  // ── EDIT MONTHLY RATE ──
   const handleEditRate = async () => {
     const val = parseInt(newMonthlyRate)
     if (isNaN(val) || val <= 0) return
@@ -240,7 +248,6 @@ export default function Admin() {
     closeSheet()
   }
 
-  // ── CHANGE PASSWORD ──
   const handleChangePw = () => {
     if (!newPw || newPw.length < 4) { setPwError('Min 4 characters'); return }
     if (newPw !== confirmPw) { setPwError('Passwords do not match'); return }
@@ -249,7 +256,6 @@ export default function Admin() {
     closeSheet()
   }
 
-  // ── RESET ──
   const handleReset = async () => {
     if (!resetConfirm) { setResetConfirm(true); return }
     await resetData()
@@ -257,12 +263,10 @@ export default function Admin() {
     closeSheet()
   }
 
-  // ── ALPHABETICAL SORTED MEMBERS ──
   const sortedMembers = [...members]
     .map((m, i) => ({ ...m, _origIdx: i }))
     .sort((a, b) => a.name.localeCompare(b.name))
 
-  // ══════════ LOCK SCREEN ══════════
   if (!isAdmin) {
     return (
       <div className="alock">
@@ -298,7 +302,6 @@ export default function Admin() {
     )
   }
 
-  // ══════════ ADMIN PANEL ══════════
   const allExpItems = Object.entries(expenses)
     .flatMap(([cat, vals]) =>
       vals.map((v, mi) => v > 0 ? { cat, amount: v, mi } : null).filter(Boolean)
@@ -308,6 +311,137 @@ export default function Admin() {
   return (
     <div className="apage">
       {toast && <Toast msg={toast} />}
+
+      {/* ══ MEMBER DETAIL — CENTERED POPUP MODAL ══ */}
+      {showMemberModal && selMember && (
+        <>
+          <div className="amodal-overlay" onClick={closeMemberModal} />
+          <div className="amodal">
+            <div className="amodal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="amember-avatar"
+                  style={{ width: 36, height: 36, borderRadius: 11, fontSize: 14,
+                    background: getColor(selMember.name)[0],
+                    color: getColor(selMember.name)[1] }}>
+                  {selMember.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="amodal-title">{selMember.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--t2)', marginTop: 1 }}>
+                    ₹{selMember.paid.reduce((s,v)=>s+v,0).toLocaleString()} total · {selMember.paid.filter(v=>v>0).length}/12 months
+                  </div>
+                </div>
+              </div>
+              <button className="asheet-close" onClick={closeMemberModal}><X size={15} /></button>
+            </div>
+
+            <div className="amodal-body">
+              <div style={{ fontSize: 10, color: 'var(--t2)', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>
+                Tap month to mark payment
+              </div>
+              <div className="apay-grid">
+                {MONTHS.map((mo, mi) => {
+                  const v = members[selMember._idx]?.paid[mi] ?? selMember.paid[mi]
+                  const paid = v > 0
+                  return (
+                    <div key={mi}
+                      className={`apay-cell ${paid ? 'paid' : 'unpaid'}`}
+                      onClick={() => handleCellTap(selMember._idx, mi)}>
+                      {paid
+                        ? <Check size={10} color="var(--green)" strokeWidth={3} />
+                        : <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+                      }
+                      <div className="apay-month">{mo}</div>
+                      {paid && <div className="apay-amt">₹{v}</div>}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {showEditName ? (
+                <div style={{ marginBottom: 16, marginTop: 8 }}>
+                  <label className="aform-label">New Name</label>
+                  <input className="aform-input"
+                    placeholder="Enter new name"
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    autoFocus
+                    onKeyDown={e => e.key === 'Enter' && handleEditName()}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => { setShowEditName(false); setEditName('') }}
+                      style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.04)', color: 'var(--t2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                      Cancel
+                    </button>
+                    <button onClick={handleEditName}
+                      style={{ flex: 1, padding: 11, background: 'var(--green)', color: '#000', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+                      Save Name
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setEditName(selMember.name); setShowEditName(true) }}
+                  style={{
+                    width: '100%', padding: '10px 14px',
+                    marginBottom: 12, marginTop: 8,
+                    background: 'rgba(59,130,246,0.07)',
+                    border: '1px solid rgba(59,130,246,0.15)',
+                    borderRadius: 14, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                  }}>
+                  <Pencil size={13} color="var(--blue)" strokeWidth={2.5} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)' }}>Edit Name</span>
+                </button>
+              )}
+
+              <button className="aform-danger"
+                onClick={() => handleRemoveMember(selMember._idx)}>
+                Remove Member
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ══ PAYMENT PICKER MODAL ══ */}
+      {showPayPicker && (
+        <>
+          <div className="apay-modal-overlay" onClick={closePayPicker} />
+          <div className="apay-modal">
+            <div className="apay-sheet-title">
+              {payMonthIdx !== null ? MONTHS[payMonthIdx] : ''} — Select Amount
+            </div>
+            <div className="apay-quick">
+              {[monthlyRate, monthlyRate*2, monthlyRate*5, monthlyRate*12].map(amt => (
+                <button key={amt}
+                  className={`apay-quick-btn ${payAmount === String(amt) ? 'on' : 'off'}`}
+                  onClick={() => setPayAmount(String(amt))}>
+                  ₹{amt}
+                </button>
+              ))}
+            </div>
+            <input
+              className="aform-input"
+              type="number"
+              placeholder="Custom amount"
+              value={payAmount}
+              onChange={e => setPayAmount(e.target.value)}
+              style={{ marginBottom: 12 }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={closePayPicker}
+                style={{ flex: 1, padding: 13, background: 'rgba(255,255,255,0.04)', color: 'var(--t2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={handleSavePay}
+                style={{ flex: 1, padding: 13, background: 'var(--green)', color: '#000', border: 'none', borderRadius: 14, fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 16px rgba(34,197,94,0.3)' }}>
+                Save ₹{payAmount}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── HEADER ── */}
       <div className="apage-header">
@@ -338,7 +472,7 @@ export default function Admin() {
           <div className="aquick">
             <button className="aquick-btn"
               style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.12)' }}
-              onClick={() => setSheet('add-member')}>
+              onClick={() => openSheet('add-member')}>
               <div className="aquick-btn-icon" style={{ background: 'rgba(34,197,94,0.12)' }}>
                 <Users size={16} color="var(--green)" strokeWidth={2.5} />
               </div>
@@ -349,7 +483,7 @@ export default function Admin() {
             </button>
             <button className="aquick-btn"
               style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.12)' }}
-              onClick={() => setSheet('add-expense')}>
+              onClick={() => openSheet('add-expense')}>
               <div className="aquick-btn-icon" style={{ background: 'rgba(239,68,68,0.12)' }}>
                 <Receipt size={16} color="var(--red)" strokeWidth={2.5} />
               </div>
@@ -361,7 +495,7 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* ── MEMBERS — ALPHABETICAL ── */}
+        {/* ── MEMBERS ── */}
         <div className="asection">
           <div className="asection-label">Members ({members.length})</div>
           {members.length === 0 && (
@@ -376,10 +510,7 @@ export default function Admin() {
             return (
               <div key={i} className="amember-row"
                 style={{ animationDelay: `${i * 0.03}s` }}
-                onClick={() => {
-                  setSelMember({ ...m, _idx: m._origIdx })
-                  setSheet('member-detail')
-                }}>
+                onClick={() => openMemberModal({ ...m, _idx: m._origIdx })}>
                 <div className="amember-avatar" style={{ background: bg, color: fg }}>
                   {m.name.charAt(0).toUpperCase()}
                 </div>
@@ -415,18 +546,11 @@ export default function Admin() {
               </div>
               {editExp && editExp.cat === e.cat && editExp.mi === e.mi ? (
                 <div style={{ flex: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input
-                    type="number"
-                    value={editExpAmount}
+                  <input type="number" value={editExpAmount}
                     onChange={ev => setEditExpAmount(ev.target.value)}
                     autoFocus
                     onKeyDown={ev => ev.key === 'Enter' && handleEditExpense()}
-                    style={{
-                      flex: 1, background: 'rgba(255,255,255,0.06)',
-                      border: '1.5px solid rgba(34,197,94,0.3)',
-                      borderRadius: 10, padding: '7px 10px',
-                      fontSize: 14, color: '#fff', fontWeight: 700
-                    }}
+                    style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(34,197,94,0.3)', borderRadius: 10, padding: '7px 10px', fontSize: 14, color: '#fff', fontWeight: 700 }}
                   />
                   <button onClick={handleEditExpense}
                     style={{ padding: '7px 12px', background: 'var(--green)', color: '#000', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 800, cursor: 'pointer', flexShrink: 0 }}>
@@ -445,26 +569,12 @@ export default function Admin() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div className="aexp-amount">−₹{e.amount.toLocaleString()}</div>
-                    <button
-                      onClick={() => { setEditExp(e); setEditExpAmount(String(e.amount)) }}
-                      style={{
-                        width: 30, height: 30, borderRadius: 9,
-                        background: 'rgba(59,130,246,0.1)',
-                        border: '1px solid rgba(59,130,246,0.2)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', flexShrink: 0
-                      }}>
+                    <button onClick={() => { setEditExp(e); setEditExpAmount(String(e.amount)) }}
+                      style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                       <Pencil size={12} color="var(--blue)" strokeWidth={2.5} />
                     </button>
-                    <button
-                      onClick={() => handleDeleteExpense(e.cat, e.mi)}
-                      style={{
-                        width: 30, height: 30, borderRadius: 9,
-                        background: 'rgba(239,68,68,0.1)',
-                        border: '1px solid rgba(239,68,68,0.2)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', flexShrink: 0
-                      }}>
+                    <button onClick={() => handleDeleteExpense(e.cat, e.mi)}
+                      style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                       <X size={12} color="var(--red)" strokeWidth={2.5} />
                     </button>
                   </div>
@@ -477,10 +587,8 @@ export default function Admin() {
         {/* ── SETTINGS ── */}
         <div className="asection">
           <div className="asection-label">Settings</div>
-
-          {/* Old Balance */}
           <div className="asetting-row"
-            onClick={() => { setNewBalance(String(oldBalance)); setSheet('edit-balance') }}>
+            onClick={() => { setNewBalance(String(oldBalance)); openSheet('edit-balance') }}>
             <div className="asetting-left">
               <div className="asetting-icon" style={{ background: 'rgba(59,130,246,0.1)' }}>
                 <Wallet size={15} color="var(--blue)" strokeWidth={2} />
@@ -493,9 +601,8 @@ export default function Admin() {
             <ChevronRight size={14} color="var(--t3)" />
           </div>
 
-          {/* Monthly Rate */}
           <div className="asetting-row"
-            onClick={() => { setNewMonthlyRate(String(monthlyRate)); setSheet('edit-rate') }}>
+            onClick={() => { setNewMonthlyRate(String(monthlyRate)); openSheet('edit-rate') }}>
             <div className="asetting-left">
               <div className="asetting-icon" style={{ background: 'rgba(34,197,94,0.1)' }}>
                 <IndianRupee size={15} color="var(--green)" strokeWidth={2} />
@@ -508,8 +615,7 @@ export default function Admin() {
             <ChevronRight size={14} color="var(--t3)" />
           </div>
 
-          {/* Change Password */}
-          <div className="asetting-row" onClick={() => setSheet('change-pw')}>
+          <div className="asetting-row" onClick={() => openSheet('change-pw')}>
             <div className="asetting-left">
               <div className="asetting-icon" style={{ background: 'rgba(168,85,247,0.1)' }}>
                 <Lock size={15} color="#a855f7" strokeWidth={2} />
@@ -522,8 +628,7 @@ export default function Admin() {
             <ChevronRight size={14} color="var(--t3)" />
           </div>
 
-          {/* Reset */}
-          <div className="adanger-row" onClick={() => setSheet('reset')}>
+          <div className="adanger-row" onClick={() => openSheet('reset')}>
             <div className="asetting-left">
               <div className="asetting-icon" style={{ background: 'rgba(239,68,68,0.1)' }}>
                 <AlertTriangle size={15} color="var(--red)" strokeWidth={2} />
@@ -543,7 +648,7 @@ export default function Admin() {
 
       </div>
 
-      {/* ══════════ SHEETS ══════════ */}
+      {/* ══════════ BOTTOM SHEETS (non-member) ══════════ */}
       {sheet && (
         <>
           <div className="asheet-overlay" onClick={closeSheet} />
@@ -572,132 +677,6 @@ export default function Admin() {
                   </select>
                   <button className="aform-btn" onClick={handleAddMember} disabled={saving}>
                     {saving ? 'Adding...' : 'Add to Squad'}
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* MEMBER DETAIL */}
-            {sheet === 'member-detail' && selMember && (
-              <>
-                <div className="asheet-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div className="amember-avatar"
-                      style={{ width: 36, height: 36, borderRadius: 11, fontSize: 14,
-                        background: getColor(selMember.name)[0],
-                        color: getColor(selMember.name)[1] }}>
-                      {selMember.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="asheet-title">{selMember.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--t2)', marginTop: 1 }}>
-                        ₹{selMember.paid.reduce((s,v)=>s+v,0).toLocaleString()} total · {selMember.paid.filter(v=>v>0).length}/12 months
-                      </div>
-                    </div>
-                  </div>
-                  <button className="asheet-close" onClick={closeSheet}><X size={15} /></button>
-                </div>
-
-                <div className="asheet-body">
-
-                  {/* EDIT NAME */}
-                  {showEditName ? (
-                    <div style={{ marginBottom: 16 }}>
-                      <label className="aform-label">New Name</label>
-                      <input className="aform-input"
-                        placeholder="Enter new name"
-                        value={editName}
-                        onChange={e => setEditName(e.target.value)}
-                        autoFocus
-                        onKeyDown={e => e.key === 'Enter' && handleEditName()}
-                      />
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button
-                          onClick={() => { setShowEditName(false); setEditName('') }}
-                          style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.04)', color: 'var(--t2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                          Cancel
-                        </button>
-                        <button onClick={handleEditName}
-                          style={{ flex: 1, padding: 11, background: 'var(--green)', color: '#000', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
-                          Save Name
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setEditName(selMember.name); setShowEditName(true) }}
-                      style={{
-                        width: '100%', padding: '10px 14px', marginBottom: 16,
-                        background: 'rgba(59,130,246,0.07)',
-                        border: '1px solid rgba(59,130,246,0.15)',
-                        borderRadius: 14, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 8,
-                      }}>
-                      <Pencil size={13} color="var(--blue)" strokeWidth={2.5} />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)' }}>Edit Name</span>
-                    </button>
-                  )}
-
-                  {/* PAYMENT GRID */}
-                  <div style={{ fontSize: 10, color: 'var(--t2)', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>
-                    Tap month to toggle
-                  </div>
-                  <div className="apay-grid">
-                    {MONTHS.map((mo, mi) => {
-                      const v = members[selMember._idx]?.paid[mi] ?? selMember.paid[mi]
-                      const paid = v > 0
-                      return (
-                        <div key={mi}
-                          className={`apay-cell ${paid ? 'paid' : 'unpaid'}`}
-                          onClick={() => handleCellTap(selMember._idx, mi)}>
-                          {paid
-                            ? <Check size={10} color="var(--green)" strokeWidth={3} />
-                            : <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
-                          }
-                          <div className="apay-month">{mo}</div>
-                          {paid && <div className="apay-amt">₹{v}</div>}
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* PAY AMOUNT PICKER */}
-                  {showPayPicker && (
-                    <div className="apay-picker">
-                      <div className="apay-picker-label">
-                        {MONTHS[payMonthIdx]} — Enter Amount
-                      </div>
-                      <div className="apay-quick">
-                        {[monthlyRate, monthlyRate*2, monthlyRate*5, monthlyRate*12].map(amt => (
-                          <button key={amt}
-                            className={`apay-quick-btn ${payAmount === String(amt) ? 'on' : 'off'}`}
-                            onClick={() => setPayAmount(String(amt))}>
-                            ₹{amt}
-                          </button>
-                        ))}
-                      </div>
-                      <input className="aform-input" type="number"
-                        placeholder="Custom amount"
-                        value={payAmount}
-                        onChange={e => setPayAmount(e.target.value)}
-                        style={{ marginBottom: 10 }} />
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => setShowPayPicker(false)}
-                          style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.04)', color: 'var(--t2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleTogglePay(selMember._idx, payMonthIdx, parseInt(payAmount) || monthlyRate)}
-                          style={{ flex: 1, padding: 11, background: 'var(--green)', color: '#000', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
-                          Save ₹{payAmount}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <button className="aform-danger"
-                    onClick={() => handleRemoveMember(selMember._idx)}>
-                    Remove Member
                   </button>
                 </div>
               </>
@@ -768,7 +747,6 @@ export default function Admin() {
                 <div className="asheet-body">
                   <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 16, lineHeight: 1.5 }}>
                     Amount each member pays per month. Currently ₹{monthlyRate}.
-                    This affects dues calculation for all members.
                   </div>
                   <label className="aform-label">Rate (₹)</label>
                   <input className="aform-input" type="number"
