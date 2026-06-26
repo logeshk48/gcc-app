@@ -52,7 +52,6 @@ export default function Admin() {
   const [sheet, setSheet] = useState(null)
   const [selMember, setSelMember] = useState(null)
 
-  // member detail is now a MODAL, not a sheet
   const [showMemberModal, setShowMemberModal] = useState(false)
 
   const [payAmount, setPayAmount] = useState('100')
@@ -495,7 +494,7 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* ── MEMBERS ── */}
+        {/* ── MEMBERS — INDEPENDENT SCROLL ── */}
         <div className="asection">
           <div className="asection-label">Members ({members.length})</div>
           {members.length === 0 && (
@@ -503,31 +502,33 @@ export default function Admin() {
               No members yet — tap Add Member
             </div>
           )}
-          {sortedMembers.map((m, i) => {
-            const [bg, fg] = getColor(m.name)
-            const paidCount = m.paid.filter(v => v > 0).length
-            const total = m.paid.reduce((s, v) => s + v, 0)
-            return (
-              <div key={i} className="amember-row"
-                style={{ animationDelay: `${i * 0.03}s` }}
-                onClick={() => openMemberModal({ ...m, _idx: m._origIdx })}>
-                <div className="amember-avatar" style={{ background: bg, color: fg }}>
-                  {m.name.charAt(0).toUpperCase()}
+          <div className="amember-scroll">
+            {sortedMembers.map((m, i) => {
+              const [bg, fg] = getColor(m.name)
+              const paidCount = m.paid.filter(v => v > 0).length
+              const total = m.paid.reduce((s, v) => s + v, 0)
+              return (
+                <div key={i} className="amember-row"
+                  style={{ animationDelay: `${i * 0.03}s` }}
+                  onClick={() => openMemberModal({ ...m, _idx: m._origIdx })}>
+                  <div className="amember-avatar" style={{ background: bg, color: fg }}>
+                    {m.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="amember-info">
+                    <div className="amember-name">{m.name}</div>
+                    <div className="amember-sub">{paidCount} months · ₹{total.toLocaleString()}</div>
+                  </div>
+                  <div className="amember-dots">
+                    {MONTHS.map((_, mi) => (
+                      <div key={mi} className="amember-dot"
+                        style={{ background: m.paid[mi] > 0 ? 'var(--green)' : 'rgba(255,255,255,0.08)' }} />
+                    ))}
+                  </div>
+                  <ChevronRight size={14} color="var(--t3)" style={{ marginLeft: 4, flexShrink: 0 }} />
                 </div>
-                <div className="amember-info">
-                  <div className="amember-name">{m.name}</div>
-                  <div className="amember-sub">{paidCount} months · ₹{total.toLocaleString()}</div>
-                </div>
-                <div className="amember-dots">
-                  {MONTHS.map((_, mi) => (
-                    <div key={mi} className="amember-dot"
-                      style={{ background: m.paid[mi] > 0 ? 'var(--green)' : 'rgba(255,255,255,0.08)' }} />
-                  ))}
-                </div>
-                <ChevronRight size={14} color="var(--t3)" style={{ marginLeft: 4, flexShrink: 0 }} />
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
 
         {/* ── EXPENSES ── */}
