@@ -144,87 +144,88 @@ export default function Members() {
         </div>
       </div>
 
-      {/* ── LIST ── */}
+      {/* ── LIST — INDEPENDENT SCROLL CONTAINER ── */}
       <div className="mpage-list">
+        <div className="mlist-scroll">
 
-        {loading && [1,2,3,4].map(i => <div key={i} className="mskeleton" />)}
+          {loading && [1,2,3,4].map(i => <div key={i} className="mskeleton" />)}
 
-        {!loading && filtered.length === 0 && (
-          <div className="mpage-empty">
-            <div className="mpage-empty-icon">
-              <Users size={28} color="var(--green)" strokeWidth={1.5} />
+          {!loading && filtered.length === 0 && (
+            <div className="mpage-empty">
+              <div className="mpage-empty-icon">
+                <Users size={28} color="var(--green)" strokeWidth={1.5} />
+              </div>
+              <div className="mpage-empty-title">
+                {members.length === 0 ? 'No players yet' : 'No results'}
+              </div>
+              <div className="mpage-empty-sub">
+                {members.length === 0
+                  ? isAdmin ? 'Tap + to add your first player' : 'Admin hasn\'t added players yet'
+                  : 'Try a different search or filter'
+                }
+              </div>
             </div>
-            <div className="mpage-empty-title">
-              {members.length === 0 ? 'No players yet' : 'No results'}
-            </div>
-            <div className="mpage-empty-sub">
-              {members.length === 0
-                ? isAdmin ? 'Tap + to add your first player' : 'Admin hasn\'t added players yet'
-                : 'Try a different search or filter'
-              }
-            </div>
-          </div>
-        )}
+          )}
 
-        {!loading && filtered.map((m, i) => {
-          const status = getStatus(m, curMonth)
-          const ss = STATUS[status]
-          const [bg, fg] = getColor(m.name)
-          const total = m.paid.reduce((s, v) => s + v, 0)
-          const paidM = m.paid.filter(v => v > 0).length
+          {!loading && filtered.map((m, i) => {
+            const status = getStatus(m, curMonth)
+            const ss = STATUS[status]
+            const [bg, fg] = getColor(m.name)
+            const total = m.paid.reduce((s, v) => s + v, 0)
+            const paidM = m.paid.filter(v => v > 0).length
 
-          return (
-            <div key={i}
-              className={`mcard status-${status}`}
-              style={{ animationDelay: `${i * 0.03}s` }}
-              onClick={() => setSelected({ ...m, _idx: m._origIdx })}>
+            return (
+              <div key={i}
+                className={`mcard status-${status}`}
+                style={{ animationDelay: `${i * 0.03}s` }}
+                onClick={() => setSelected({ ...m, _idx: m._origIdx })}>
 
-              <div className="mcard-top">
-                <div className="mcard-avatar" style={{ background: bg, color: fg }}>
-                  {m.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="mcard-info">
-                  <div className="mcard-name">{m.name}</div>
-                  <div className="mcard-meta">{paidM} of 12 months paid</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div className="mcard-amount" style={{ color: ss.color }}>
-                    ₹{total.toLocaleString()}
+                <div className="mcard-top">
+                  <div className="mcard-avatar" style={{ background: bg, color: fg }}>
+                    {m.name.charAt(0).toUpperCase()}
                   </div>
-                  <div style={{
-                    fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-                    letterSpacing: 1, color: ss.color, marginTop: 3, opacity: 0.8
-                  }}>{ss.label}</div>
+                  <div className="mcard-info">
+                    <div className="mcard-name">{m.name}</div>
+                    <div className="mcard-meta">{paidM} of 12 months paid</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className="mcard-amount" style={{ color: ss.color }}>
+                      ₹{total.toLocaleString()}
+                    </div>
+                    <div style={{
+                      fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                      letterSpacing: 1, color: ss.color, marginTop: 3, opacity: 0.8
+                    }}>{ss.label}</div>
+                  </div>
+                </div>
+
+                <div className="mcard-dots">
+                  {MONTHS.map((mo, mi) => (
+                    <div key={mi} className="mcard-dot"
+                      style={{
+                        background: m.paid[mi] > 0 ? ss.color : 'rgba(255,255,255,0.06)'
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
-
-              <div className="mcard-dots">
-                {MONTHS.map((mo, mi) => (
-                  <div key={mi} className="mcard-dot"
-                    style={{
-                      background: m.paid[mi] > 0 ? ss.color : 'rgba(255,255,255,0.06)'
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
-      {/* ══ ADD SHEET ══ */}
+      {/* ══ ADD SHEET — CENTERED MODAL ══ */}
       {showAdd && (
         <>
-          <div className="msheet-overlay" onClick={() => setShowAdd(false)} />
-          <div className="msheet">
-            <div className="msheet-handle" />
-            <div className="msheet-header">
-              <div className="msheet-title">Add Player</div>
+          <div className="mmodal-overlay" onClick={() => setShowAdd(false)} />
+          <div className="mmodal">
+            <div className="mmodal-header">
+              <div className="mmodal-title">Add Player</div>
               <button className="msheet-close" onClick={() => setShowAdd(false)}>
                 <X size={15} />
               </button>
             </div>
-            <div className="msheet-body">
+            <div className="mmodal-body">
               <label className="mform-label">Player Name</label>
               <input className="mform-input" placeholder="Enter full name"
                 value={newName} onChange={e => setNewName(e.target.value)}
@@ -245,7 +246,7 @@ export default function Members() {
         </>
       )}
 
-      {/* ══ DETAIL SHEET ══ */}
+      {/* ══ DETAIL — CENTERED MODAL ══ */}
       {selected && (() => {
         const status = getStatus(selected, curMonth)
         const ss = STATUS[status]
@@ -254,17 +255,16 @@ export default function Members() {
         const paidM = selected.paid.filter(v => v > 0).length
         return (
           <>
-            <div className="msheet-overlay" onClick={() => setSelected(null)} />
-            <div className="msheet">
-              <div className="msheet-handle" />
-              <div className="msheet-header">
+            <div className="mmodal-overlay" onClick={() => setSelected(null)} />
+            <div className="mmodal">
+              <div className="mmodal-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div className="mcard-avatar"
                     style={{ width: 40, height: 40, borderRadius: 12, fontSize: 16, background: bg, color: fg }}>
                     {selected.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div className="msheet-title">{selected.name}</div>
+                    <div className="mmodal-title">{selected.name}</div>
                     <div style={{ fontSize: 11, color: ss.color, fontWeight: 700, marginTop: 1 }}>
                       {ss.label}
                     </div>
@@ -275,7 +275,7 @@ export default function Members() {
                 </button>
               </div>
 
-              <div className="msheet-body">
+              <div className="mmodal-body">
 
                 {/* stats */}
                 <div className="mdetail-stats">
